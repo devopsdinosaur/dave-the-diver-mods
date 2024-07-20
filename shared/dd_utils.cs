@@ -89,14 +89,14 @@ public static class UnityUtils {
         void add_obj(Transform transform) {
             add_line("{");
             tab_count++;
-            add_line($"\"name\": \"{transform.name}\"");
+            add_line($"\"name\": \"{transform.name}\",");
             add_line("\"components\": [");
             tab_count++;
             foreach (Component component in transform.GetComponents<Component>()){
                 if (component is Transform) {
                     add_line($"\"Transform\"");
                 } else {
-                    add_line($"\"{component.GetIl2CppType().ToString()}\"");
+                    add_line($"\"{component.GetIl2CppType().ToString()}\",");
                 }
             }
             tab_count--;
