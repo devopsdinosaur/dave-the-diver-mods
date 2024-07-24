@@ -11,7 +11,8 @@ using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using BepInEx.Unity.IL2CPP;
 using EvilFactory;
-using SushiBar.Customer;
+using CodeStage.AntiCheat.ObscuredTypes;
+using DR;
 
 [BepInPlugin("devopsdinosaur.davethediver.testing", "Testing", "0.0.1")]
 public class TestingPlugin : BasePlugin {
@@ -25,6 +26,16 @@ public class TestingPlugin : BasePlugin {
 		try {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 			this.m_harmony.PatchAll();
+			
+			ReflectionUtils.generate_trace_patcher(typeof(IntegratedItem), "C:/tmp/TracePatcher_IntegratedItem.cs", @"
+using DR;
+class MapperConfiguration {}
+",
+				new string[] {
+				}
+			);
+			Application.Quit();
+
 			logger.LogInfo("devopsdinosaur.davethediver.testing v0.0.1 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
@@ -35,40 +46,6 @@ public class TestingPlugin : BasePlugin {
 		logger.LogInfo(text);
 	}
 
-	[HarmonyPatch(typeof(DefaultGunGear), "FireGun")]
-	class HarmonyPatch_DefaultGunGear_FireGun {
-
-		private static bool Prefix() {
-			try {
-				
-				return true;
-			} catch (Exception e) {
-				logger.LogError("** XXXXX.Prefix ERROR - " + e);
-			}
-			return true;
-		}
-	}
-
-	[HarmonyPatch(typeof(GunBullet), "Shoot", new Type[] {
-		typeof(IAdvancedDamager), typeof(Vector3), typeof(GunSpecData), 
-		typeof(BulletSoundList), typeof(int), typeof(string), 
-		typeof(bool)
-	})]
-	class HarmonyPatch_GunBullet_Shoot1 {
-
-		private static bool Prefix(GunBullet __instance, IAdvancedDamager attacker, Vector3 direction, GunSpecData gunSpecData, BulletSoundList soundList, int bulletID, string bulletIDTag, bool IsDoNotGiveInvincible) {
-			try {
-				debug_log("** SHOOT (1)! **");
-				gunSpecData._GunType = GunItemType.BlackHole_GrenadeLauncher;
-				gunSpecData._ExposionRadius *= 100;
-				return true;
-			} catch (Exception e) {
-				logger.LogError("** XXXXX.Postfix ERROR - " + e);
-			}
-			return true;
-		}
-	}
-
 	[HarmonyPatch(typeof(GunBullet), "Shoot", new Type[] {
 		typeof(Vector3), typeof(GunSpecData), typeof(BulletSoundList)
 	})]
@@ -77,27 +54,6 @@ public class TestingPlugin : BasePlugin {
 		private static bool Prefix(GunBullet __instance, Vector3 direction, GunSpecData gunSpecData, BulletSoundList soundList) {
 			try {
 				debug_log("** SHOOT (2)! **");
-
-				//foreach (GameObject obj in SceneManager.GetActiveScene().GetRootGameObjects()) {
-				//	UnityUtils.json_dump(obj.transform, "C:/tmp/dump/" + obj.name + ".json");
-				//}
-
-				foreach (FishInteractionBody fish in Resources.FindObjectsOfTypeAll<FishInteractionBody>()) {
-					/*
-					GunBullet bullet = GameObject.Instantiate<GunBullet>(__instance);
-					bullet.OnDoAttack(new AttackData() {
-						damager = bullet.GetDamager,
-						attackType = AttackType.Player_Gun,
-						damage = 99999,
-						direction = direction
-					}, new DefenseData() {
-						damageable = fish.gameObject.GetComponent<Damageable>()
-					});
-					GameObject.Destroy(bullet);
-					*/
-					fish.gameObject.GetComponent<Damageable>().OnDie();
-				}
-
 				return true;
 			} catch (Exception e) {
 				logger.LogError("** XXXXX.Postfix ERROR - " + e);
@@ -106,21 +62,39 @@ public class TestingPlugin : BasePlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(GunBullet), "Shoot", new Type[] {
-		typeof(IDamager), typeof(Vector3 ), typeof(GunSpecData), typeof(BulletSoundList)
-	})]
-	class HarmonyPatch_GunBullet_Shoot4 {
+	[HarmonyPatch(typeof(DelayedDisappear), "SetTime")]
+	class HarmonyPatch_DelayedDisappear_SetTime {
 
-		private static bool Prefix(GunBullet __instance, IDamager attacker, Vector3 direction, GunSpecData gunSpecData, BulletSoundList soundList) {
+		private static bool Prefix(ref float inDisappearTime) {
 			try {
-				debug_log("** SHOOT (4)! **");
-				gunSpecData._GunType = GunItemType.BlackHole_GrenadeLauncher;
-				gunSpecData._ExposionRadius *= 100;
+				debug_log($"HarmonyPatch_DelayedDisappear_SetTime - inDisappearTime: {inDisappearTime}");
+				inDisappearTime *= 10;
 				return true;
 			} catch (Exception e) {
-				logger.LogError("** XXXXX.Postfix ERROR - " + e);
+				logger.LogError("** HarmonyPatch_DelayedDisappear_SetTime.Prefix ERROR - " + e);
 			}
 			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(PlayerCharacter), "Update")]
+	class HarmonyPatch_PlayerCharacter_Update {
+
+		private static void Postfix(PlayerCharacter __instance) {
+			try {
+				
+				/*
+				if ((elapsed += Time.deltaTime) >= 15) {				
+					foreach (GameObject obj in SceneManager.GetActiveScene().GetRootGameObjects()) {
+						UnityUtils.json_dump(obj.transform, "C:/tmp/dump/" + obj.name + ".json");
+					}
+					Application.Quit();
+				}
+				*/
+
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_PlayerCharacter_Update.Postfix ERROR - " + e);
+			}
 		}
 	}
 
@@ -168,10 +142,65 @@ public class TestingPlugin : BasePlugin {
 	}
 	*/
 
-	[HarmonyPatch(typeof(PlayerCharacter), "TryStoreItem")]
-	class HarmonyPatch_ {
+	[HarmonyPatch(typeof(OverweightProperty), "GetDebuff")]
+	class HarmonyPatch_OverweightProperty_GetDebuff {
 
-		private static bool Prefix() {
+		private static bool Prefix(ref OverweightProperty.Debuff __result) {
+			__result = null;
+			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(InhaleItem), "Init")]
+	class HarmonyPatch_InhaleItem_Init {
+
+		private static bool m_one_shot = true;
+
+		private static void Postfix(Transform targetItem, Action onComplete) {
+			try {
+				int get_fish_id(string name) {
+					try {
+						return int.Parse(name.Split('_')[1]);
+					} catch {}
+					return -1;
+				}
+				
+				int fish_id = get_fish_id(targetItem.name);
+				if (!DataManager.Instance.FishInfoDataDic.TryGetValue(fish_id, out FishInfoDataEntity fish_data) || 
+					!DataManager.Instance.FishDropPackageDataDic.TryGetValue(fish_data.DropItemID, out FishDropPackageEntity fish_drop)
+				) {
+					return;
+				}
+				debug_log($"HarmonyPatch_InhaleItem_Init - type: {targetItem.name}, fish_id: {fish_id}, drop_id: {fish_data.DropItemID}");
+				foreach (FishDropPackageEntity.FishDropNode drop in fish_drop.FishDropList) {
+					debug_log($"{drop.itemTid} {drop.itemWeight}");
+				}
+				foreach (int weight in fish_drop.PlusItemWeightList) {
+					debug_log($"{weight}");
+				}
+				if (!m_one_shot) {
+					m_one_shot = true;
+					foreach (var item in DataManager.Instance.FishDropPackageDataDic) {
+						FishDropPackageEntity drop = DataManager.Instance.FishDropPackageDataDic[item.Key];
+						Il2CppSystem.Collections.Generic.List<FishDropPackageEntity.FishDropNode> new_nodes = new Il2CppSystem.Collections.Generic.List<FishDropPackageEntity.FishDropNode>();
+						foreach (FishDropPackageEntity.FishDropNode node in drop.FishDropList) {
+							new_nodes.Add(new FishDropPackageEntity.FishDropNode(node.itemTid, node.itmeTier, 0));
+						}
+						drop.GetIl2CppType().GetField("FishDropList").SetValue(drop, new_nodes);
+					}
+				}
+				//Application.Quit();
+			} catch (Exception e) {
+				logger.LogError("** XXXXX.Postfix ERROR - " + e);
+			}
+		}
+	}
+
+	/*
+	[HarmonyPatch(typeof(DataManager), "FishDropPackageDataDic", MethodType.Getter)]
+	class HarmonyPatch_DataManager_FishDropPackageDataDic {
+
+		private static bool Prefix(ref Dictionary<int, FishDropPackageEntity> __result) {
 			try {
 
 				return false;
@@ -181,6 +210,91 @@ public class TestingPlugin : BasePlugin {
 			return true;
 		}
 	}
+	*/
+
+	[HarmonyPatch(typeof(CharacterController2D), "FixedUpdate")]
+	class HarmonyPatch_CharacterController2D_FixedUpdate {
+
+		private static bool m_one_shot = true;
+
+		private static bool Prefix(CharacterController2D __instance) {
+			try {
+				if (!m_one_shot) {
+					m_one_shot = true;
+					BuffHandler buff_handler = __instance.gameObject.GetComponent<BuffHandler>();
+					//BuffDataContainer buff_container = buff_handler.GetBuffComponents;
+					/*
+					buff_handler.AddBuff(new BuffDebuffEffectData() {
+						tid = 999999,
+						suid = "suid",
+						desconlyeditor = "Carry weight buff description",
+						eelement = EElement.None,
+						buffdescid = "buffdescid",
+						bufficon = "bufficon",
+						buffvfxhead = "buffvfxhead",
+						buffvfxbody = "buffvfxbody",
+						buffvfxcolor = "buffvfxcolor",
+						bufftype = BuffType.Cargo_Weight,
+						level = 999999,
+						isoverride = true,
+						duration = 999999,
+						tickinterval = 0,
+						buffvalue1 = 999999,
+						buffvalue2 = 999999,
+						buffvalue3 = 999999,
+						chancerate = 1
+					});
+					*/
+					foreach (SpecDataBase item in Resources.FindObjectsOfTypeAll<SpecDataBase>()) {
+						if (item == null || string.IsNullOrEmpty(item.Name)) {
+							continue;
+						}
+						debug_log("item: " + item.Name);
+						if (item.buffDatas == null) {
+							continue;
+						}
+						foreach (BuffDebuffEffectData buff in item.buffDatas) {
+							debug_log("--> buffType: " + buff.BUFFTYPE + ", value: " + buff.Buffvalue1);
+							buff_handler.AddBuff(buff);
+							return true;
+						}
+					}
+				}
+				return true;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_CharacterController2D_FixedUpdate.Prefix ERROR - " + e);
+			}
+			return true;
+		}
+	}
+
+	/*
+	[HarmonyPatch(typeof(InstanceItemInventory), "EquipItem")]
+	class HarmonyPatch_InstanceItemInventory_EquipItem {
+
+		private static void Postfix(InstanceItemInventory __instance) {
+			try {
+				//__instance.gameObject.GetComponent<SubHelperItemInventory>().ApplyMoveSpeed(9999);
+				debug_log("HarmonyPatch_InstanceItemInventory_EquipItem");
+				foreach (Il2CppSystem.Collections.Generic.KeyValuePair<EquipmentType, SpecDataBase> item in __instance.currentEquipInInventory) {
+					
+					if (item == null || string.IsNullOrEmpty(item.Name)) {
+						continue;
+					}
+					debug_log("item: " + item.Name);
+					if (item.buffDatas == null) {
+						continue;
+					}
+					foreach (BuffDebuffEffectData buff in item.buffDatas) {
+						debug_log("--> buffType: " + buff.BUFFTYPE + ", value: " + buff.Buffvalue1);
+					}
+				}
+			} catch (Exception e) {
+				logger.LogError("** XXXXX.Postfix ERROR - " + e);
+			}
+		}
+	}
+	*/
 
 	/*
 	[HarmonyPatch(typeof(), "")]

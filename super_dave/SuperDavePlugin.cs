@@ -7,7 +7,7 @@ using BepInEx.Unity.IL2CPP;
 using SushiBar.Customer;
 using UnityEngine;
 
-[BepInPlugin("devopsdinosaur.davethediver.super_dave", "Super Dave", "0.0.1")]
+[BepInPlugin("devopsdinosaur.davethediver.super_dave", "Super Dave", "0.0.2")]
 public class TestingPlugin : BasePlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.davethediver.super_dave");
@@ -19,6 +19,8 @@ public class TestingPlugin : BasePlugin {
 	private static ConfigEntry<bool> m_invincible;
 	private static ConfigEntry<bool> m_toxic_aura_enabled;
 	private static ConfigEntry<float> m_aura_radius;
+	private static ConfigEntry<float> m_speed_boost;
+	private static ConfigEntry<bool> m_infinite_bullets;
 
 	// Sushi Bar
 	private static ConfigEntry<bool> m_infinite_customer_patience;
@@ -32,13 +34,15 @@ public class TestingPlugin : BasePlugin {
 			m_infinite_oxygen = this.Config.Bind<bool>("Diving", "Infinite Oxygen", false, "Set to true to have infinite oxygen when diving (and when not diving, but that's a freebie).");
 			m_invincible = this.Config.Bind<bool>("Diving", "Invincible", false, "Set to true to take no damage when hit.");
 			m_toxic_aura_enabled = this.Config.Bind<bool>("Diving", "Toxic Aura: Enabled", false, "Set to true to enable the instant-fish-killing aura around Dave.");
-			m_aura_radius = this.Config.Bind<float>("Diving", "Toxic Aura: Radius", 3.0f, "Radius (in meters?) around the character in which fish will be insta-killed, if Toxic Aura is enabled (float, default 3.0f)");
-			
+			m_aura_radius = this.Config.Bind<float>("Diving", "Toxic Aura: Radius", 3.0f, "Radius (in meters?) around the character in which fish will be insta-killed, if Toxic Aura is enabled (float, default 3.0f).");
+			m_speed_boost = this.Config.Bind<float>("Diving", "Speed Boost", 2.0f, "Permanent speed boost when diving (float, default 2.0f [set to 0 to disable]).");
+			m_infinite_bullets = this.Config.Bind<bool>("Diving", "Infinite Bullets", false, "Set to true to have infinite bullets when diving.");
+
 			// Sushi Bar
 			m_infinite_customer_patience = this.Config.Bind<bool>("Sushi", "Infinite Customer Patience", false, "Set to true to make customers never storm off if the food/drinks are too slow.");
 			
 			this.m_harmony.PatchAll();
-			logger.LogInfo("devopsdinosaur.davethediver.super_dave v0.0.1 loaded.");
+			logger.LogInfo("devopsdinosaur.davethediver.super_dave v0.0.2 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -77,6 +81,18 @@ public class TestingPlugin : BasePlugin {
 		}
 	}
 
+	[HarmonyPatch(typeof(BuffHandler), "Start")]
+	class HarmonyPatch_BuffHandler_Start {
+
+		private static void Postfix(BuffHandler __instance) {
+			try {
+				__instance.GetBuffComponents.AddMoveSpeedParam(1234567, m_speed_boost.Value);
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_BuffHandler_Start.Postfix ERROR - " + e);
+			}
+		}
+	}
+
 	[HarmonyPatch(typeof(CharacterController2D), "FixedUpdate")]
 	class HarmonyPatch_CharacterController2D_LateUpdate {
 
@@ -85,17 +101,37 @@ public class TestingPlugin : BasePlugin {
 
 		private static void Postfix(CharacterController2D __instance) {
 			try {
-				if (!m_enabled.Value || !m_toxic_aura_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < UPDATE_FREQUENCY) {
+				if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < UPDATE_FREQUENCY) {
 					return;
 				}
 				m_elapsed = 0f;
-				foreach (FishInteractionBody fish in Resources.FindObjectsOfTypeAll<FishInteractionBody>()) {
-					if (Vector3.Distance(__instance.transform.position, fish.transform.position) <= m_aura_radius.Value) {
-						fish.gameObject.GetComponent<Damageable>().OnDie();
+				if (m_toxic_aura_enabled.Value) {
+					foreach (FishInteractionBody fish in Resources.FindObjectsOfTypeAll<FishInteractionBody>()) {
+						if (Vector3.Distance(__instance.transform.position, fish.transform.position) <= m_aura_radius.Value) {
+							fish.gameObject.GetComponent<Damageable>().OnDie();
+						}
 					}
 				}
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_CharacterController2D_LateUpdate.Prefix ERROR - " + e);
+			}
+		}
+	}
+
+	[HarmonyPatch(typeof(PlayerCharacter), "Update")]
+	class HarmonyPatch_PlayerCharacter_Update {
+
+		private const float UPDATE_FREQUENCY = 1.0f;
+		private static float m_elapsed = UPDATE_FREQUENCY;
+
+		private static void Postfix(PlayerCharacter __instance) {
+			try {
+				if (!m_enabled.Value || !m_infinite_bullets.Value || (m_elapsed += Time.deltaTime) < UPDATE_FREQUENCY) {
+					return;
+				}
+				__instance?.CurrentInstanceItemInventory?.gunHandler.ForceSetBulletCount(999);
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_PlayerCharacter_Update.Postfix ERROR - " + e);
 			}
 		}
 	}

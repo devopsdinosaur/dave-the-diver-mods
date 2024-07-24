@@ -5,6 +5,7 @@ using UnityEngine;
 using BepInEx.Logging;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 public static class UnityUtils {
 
@@ -261,6 +262,60 @@ public static class ReflectionUtils {
                 break;
             }
         }
+    }
+
+    public static void generate_trace_patcher(Type type, string path, string additional_usings = "", string[] skip_methods = null) {
+        if (skip_methods == null) {
+            skip_methods = new string[] {};
+        }
+        string type_name = type.Name;
+        List<string> lines = new List<string>();
+        lines.Add($@"using HarmonyLib;
+using System;
+{additional_usings}
+
+public class TracePatcher_{type_name} {{
+    
+    public class TracerParams {{
+        public int method_id;
+        public string method_name;
+        
+    }}
+
+    private static Action<TracerParams> m_callback;
+
+    public TracePatcher_{type_name}(Action<TracerParams> callback) {{
+        m_callback = callback;
+    }}");   
+        List<string> field_accessor_names_list = new List<string>();
+        foreach (FieldInfo field in type.GetFields(BINDING_FLAGS_ALL)) {
+            field_accessor_names.Add("get_" + field.Name);
+            field_accessor_names.Add("set_" + field.Name);
+        }
+
+        int counter = 0;
+        foreach (MethodInfo method in type.GetMethods(BINDING_FLAGS_ALL)) {
+            if (skip_methods.Contains(method.Name)) {
+                lines.Add("    // Skipping " + method.Name);
+                continue;
+            }
+            List<string> param_strings = method.GetParameters().Select(param => $"typeof({param.ParameterType.Name})").ToList();
+            lines.Add($@"
+    [HarmonyPatch(typeof({type_name}), ""{method.Name}"", new Type[] {{{string.Join(", ", param_strings)}}})]
+    class HarmonyPatch_{method.Name} {{
+        private static void Postfix() {{
+            m_callback(new TracerParams() {{
+                method_id = {counter},
+                method_name = ""{method.Name}""
+            }});
+        }}
+    }}");
+            counter++;
+        }
+        lines.Add("}");
+        StreamWriter f = File.CreateText(path);
+        f.Write(string.Join("\n", lines));
+        f.Close();
     }
 }
 
