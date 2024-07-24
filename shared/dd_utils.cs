@@ -264,7 +264,13 @@ public static class ReflectionUtils {
         }
     }
 
-    public static void generate_trace_patcher(Type type, string path, string additional_usings = "", string[] skip_methods = null) {
+    public static void generate_trace_patcher(
+        Type type, 
+        string path, 
+        string additional_usings = "", 
+        string[] skip_methods = null,
+        bool echo_skip_messages = false
+    ) {
         if (skip_methods == null) {
             skip_methods = new string[] {};
         }
@@ -282,21 +288,27 @@ public class TracePatcher_{type_name} {{
         
     }}
 
-    private static Action<TracerParams> m_callback;
-
-    public TracePatcher_{type_name}(Action<TracerParams> callback) {{
-        m_callback = callback;
-    }}");   
+    public static Action<TracerParams> callback = null;
+");   
         List<string> field_accessor_names_list = new List<string>();
         foreach (FieldInfo field in type.GetFields(BINDING_FLAGS_ALL)) {
-            field_accessor_names.Add("get_" + field.Name);
-            field_accessor_names.Add("set_" + field.Name);
+            string field_name = (field.Name.StartsWith("NativeFieldInfoPtr_") ? field.Name.Substring(19) : field.Name);
+            field_accessor_names_list.Add("get_" + field_name);
+            field_accessor_names_list.Add("set_" + field_name);
         }
-
+        string[] field_accessor_names = field_accessor_names_list.ToArray();
         int counter = 0;
         foreach (MethodInfo method in type.GetMethods(BINDING_FLAGS_ALL)) {
+            string skip_reason = null;
             if (skip_methods.Contains(method.Name)) {
-                lines.Add("    // Skipping " + method.Name);
+                skip_reason = "Specified in 'skip_methods' param";
+            } else if (field_accessor_names.Contains(method.Name)) {
+                skip_reason = "Field accessor";
+            }
+            if (skip_reason != null) {
+                if (echo_skip_messages) {
+                    lines.Add($"    // Skipping {method.Name} ({skip_reason}).");
+                }
                 continue;
             }
             List<string> param_strings = method.GetParameters().Select(param => $"typeof({param.ParameterType.Name})").ToList();
@@ -304,10 +316,12 @@ public class TracePatcher_{type_name} {{
     [HarmonyPatch(typeof({type_name}), ""{method.Name}"", new Type[] {{{string.Join(", ", param_strings)}}})]
     class HarmonyPatch_{method.Name} {{
         private static void Postfix() {{
-            m_callback(new TracerParams() {{
-                method_id = {counter},
-                method_name = ""{method.Name}""
-            }});
+            if (callback != null) {{
+                callback(new TracerParams() {{
+                    method_id = {counter},
+                    method_name = ""{method.Name}""
+                }});
+            }}
         }}
     }}");
             counter++;

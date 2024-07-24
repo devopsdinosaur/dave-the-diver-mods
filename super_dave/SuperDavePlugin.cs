@@ -4,6 +4,7 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using System;
 using BepInEx.Unity.IL2CPP;
+using DR;
 using SushiBar.Customer;
 using UnityEngine;
 
@@ -21,9 +22,10 @@ public class TestingPlugin : BasePlugin {
 	private static ConfigEntry<float> m_aura_radius;
 	private static ConfigEntry<float> m_speed_boost;
 	private static ConfigEntry<bool> m_infinite_bullets;
+    private static ConfigEntry<bool> m_weightless_items;
 
-	// Sushi Bar
-	private static ConfigEntry<bool> m_infinite_customer_patience;
+    // Sushi Bar
+    private static ConfigEntry<bool> m_infinite_customer_patience;
 
 	public override void Load() {
 		logger = base.Log;
@@ -37,9 +39,10 @@ public class TestingPlugin : BasePlugin {
 			m_aura_radius = this.Config.Bind<float>("Diving", "Toxic Aura: Radius", 3.0f, "Radius (in meters?) around the character in which fish will be insta-killed, if Toxic Aura is enabled (float, default 3.0f).");
 			m_speed_boost = this.Config.Bind<float>("Diving", "Speed Boost", 2.0f, "Permanent speed boost when diving (float, default 2.0f [set to 0 to disable]).");
 			m_infinite_bullets = this.Config.Bind<bool>("Diving", "Infinite Bullets", false, "Set to true to have infinite bullets when diving.");
+            m_weightless_items = this.Config.Bind<bool>("Diving", "Weightless Items", false, "Set to true to have reduce the weight of all items to 0, effectively giving infinite carry weight and inventory space.");
 
-			// Sushi Bar
-			m_infinite_customer_patience = this.Config.Bind<bool>("Sushi", "Infinite Customer Patience", false, "Set to true to make customers never storm off if the food/drinks are too slow.");
+            // Sushi Bar
+            m_infinite_customer_patience = this.Config.Bind<bool>("Sushi", "Infinite Customer Patience", false, "Set to true to make customers never storm off if the food/drinks are too slow.");
 			
 			this.m_harmony.PatchAll();
 			logger.LogInfo("devopsdinosaur.davethediver.super_dave v0.0.2 loaded.");
@@ -136,11 +139,27 @@ public class TestingPlugin : BasePlugin {
 		}
 	}
 
-	// ================================================================================
-	// == Sushi Bar
-	// ================================================================================
+    [HarmonyPatch(typeof(IntegratedItem), "BuildInternal")]
+    class HarmonyPatch_IntegratedItem_BuildInternal {
 
-	[HarmonyPatch(typeof(SushiBarCustomer), "LateUpdate")]
+        private static bool Prefix(ref IItemBase itemBase) {
+            try {
+				if (m_enabled.Value && m_weightless_items.Value) {
+					itemBase.ItemWeight = 0;
+				}
+                return true;
+            } catch (Exception e) {
+                logger.LogError("** HarmonyPatch_IntegratedItem_BuildInternal.Postfix ERROR - " + e);
+            }
+            return true;
+        }
+    }
+
+    // ================================================================================
+    // == Sushi Bar
+    // ================================================================================
+
+    [HarmonyPatch(typeof(SushiBarCustomer), "LateUpdate")]
 	class HarmonyPatch_SushiBarCustomer_LateUpdate {
 
 		private static void Postfix(SushiBarCustomer __instance) {

@@ -13,6 +13,7 @@ using BepInEx.Unity.IL2CPP;
 using EvilFactory;
 using CodeStage.AntiCheat.ObscuredTypes;
 using DR;
+using System.Linq;
 
 [BepInPlugin("devopsdinosaur.davethediver.testing", "Testing", "0.0.1")]
 public class TestingPlugin : BasePlugin {
@@ -27,15 +28,25 @@ public class TestingPlugin : BasePlugin {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 			this.m_harmony.PatchAll();
 			
+			/*
 			ReflectionUtils.generate_trace_patcher(typeof(IntegratedItem), "C:/tmp/TracePatcher_IntegratedItem.cs", @"
 using DR;
 class MapperConfiguration {}
 ",
 				new string[] {
-				}
+                    "get_ItemSpecID",
+                    "set_ItemSpecID"
+                }
 			);
 			Application.Quit();
+			*/
 
+			/*
+			TracePatcher_IntegratedItem.callback = delegate(TracePatcher_IntegratedItem.TracerParams args) {
+				debug_log(args.method_name);
+			};
+			*/
+			
 			logger.LogInfo("devopsdinosaur.davethediver.testing v0.0.1 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
@@ -46,7 +57,9 @@ class MapperConfiguration {}
 		logger.LogInfo(text);
 	}
 
-	[HarmonyPatch(typeof(GunBullet), "Shoot", new Type[] {
+    
+
+    [HarmonyPatch(typeof(GunBullet), "Shoot", new Type[] {
 		typeof(Vector3), typeof(GunSpecData), typeof(BulletSoundList)
 	})]
 	class HarmonyPatch_GunBullet_Shoot2 {
