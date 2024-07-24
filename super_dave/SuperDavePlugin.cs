@@ -39,7 +39,7 @@ public class TestingPlugin : BasePlugin {
 			m_aura_radius = this.Config.Bind<float>("Diving", "Toxic Aura: Radius", 3.0f, "Radius (in meters?) around the character in which fish will be insta-killed, if Toxic Aura is enabled (float, default 3.0f).");
 			m_speed_boost = this.Config.Bind<float>("Diving", "Speed Boost", 2.0f, "Permanent speed boost when diving (float, default 2.0f [set to 0 to disable]).");
 			m_infinite_bullets = this.Config.Bind<bool>("Diving", "Infinite Bullets", false, "Set to true to have infinite bullets when diving.");
-            m_weightless_items = this.Config.Bind<bool>("Diving", "Weightless Items", false, "Set to true to have reduce the weight of all items to 0, effectively giving infinite carry weight and inventory space.");
+            m_weightless_items = this.Config.Bind<bool>("Diving", "Weightless Items (Infinite Carry Weight)", false, "Set to true to have reduce the weight of all items to 0, effectively giving infinite carry weight and inventory space.");
 
             // Sushi Bar
             m_infinite_customer_patience = this.Config.Bind<bool>("Sushi", "Infinite Customer Patience", false, "Set to true to make customers never storm off if the food/drinks are too slow.");
@@ -132,7 +132,9 @@ public class TestingPlugin : BasePlugin {
 				if (!m_enabled.Value || !m_infinite_bullets.Value || (m_elapsed += Time.deltaTime) < UPDATE_FREQUENCY) {
 					return;
 				}
-				__instance?.CurrentInstanceItemInventory?.gunHandler.ForceSetBulletCount(999);
+				try {
+					__instance?.CurrentInstanceItemInventory?.gunHandler.ForceSetBulletCount(999);
+				} catch {}
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_PlayerCharacter_Update.Postfix ERROR - " + e);
 			}

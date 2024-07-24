@@ -6,6 +6,7 @@ using BepInEx.Logging;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using BepInEx.Unity.IL2CPP;
 
 public static class UnityUtils {
 
@@ -351,6 +352,15 @@ public class PluginUpdater : MonoBehaviour {
     private ManualLogSource m_logger;
 
     public static PluginUpdater create(GameObject parent, ManualLogSource logger) {
+        if (m_instance != null) {
+            return m_instance;
+        }
+        m_instance = parent.AddComponent<PluginUpdater>();
+        m_instance.m_logger = logger;
+        return m_instance;
+    }
+
+    public static PluginUpdater create(BasePlugin parent, ManualLogSource logger) {
         if (m_instance != null) {
             return m_instance;
         }
