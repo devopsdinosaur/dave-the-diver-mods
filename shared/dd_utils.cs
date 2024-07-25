@@ -80,44 +80,44 @@ public static class UnityUtils {
         string tab_string = "";
         int tab_count = 0;
 
-        void add_line(string text) {
+        string tabbed_text(string text) {
             string space = "";
             for (int counter = 0; counter < tab_count; counter++) {
                 space += tab_string;
             }
-            lines.Add(space + text);
+            return space + text;
         }
 
-        void add_obj(Transform transform) {
+        void add_line(string text) {
+            lines.Add(tabbed_text(text));
+        }
+
+        void add_obj(Transform transform, bool add_trailing_comma) {
             add_line("{");
             tab_count++;
             add_line($"\"name\": \"{transform.name}\",");
             add_line("\"components\": [");
             tab_count++;
-            foreach (Component component in transform.GetComponents<Component>()){
-                if (component is Transform) {
-                    add_line($"\"Transform\"");
-                } else {
-                    add_line($"\"{component.GetIl2CppType().ToString()}\",");
-                }
-            }
+            lines.Add(string.Join(",\n", transform.GetComponents<Component>().Select(component => 
+                tabbed_text($"\"{component.GetIl2CppType().ToString()}\"")))
+            );
             tab_count--;
             add_line("],");
             add_line("\"children\": [");
             tab_count++;
             for (int counter = 0; counter < transform.childCount; counter++) {
-                add_obj(transform.GetChild(counter));
+                add_obj(transform.GetChild(counter), counter < transform.childCount - 1);
             }
             tab_count--;
             add_line("]");
             tab_count--;
-            add_line("},");
+            add_line("}" + (add_trailing_comma ? "," : ""));
         }
 
         for (int counter = 0; counter < TAB_SIZE; counter++) {
             tab_string += " ";
         }
-        add_obj(obj);
+        add_obj(obj, false);
         StreamWriter f = File.CreateText(path);
         f.Write(string.Join("\n", lines));
         f.Close();
@@ -348,8 +348,9 @@ public class PluginUpdater : MonoBehaviour {
         public float elapsed;
         public Action action;
     }
-    private List<UpdateInfo> m_actions = new List<UpdateInfo>();
+    private UpdateInfo[] m_actions = new UpdateInfo[0];
     private ManualLogSource m_logger;
+    private bool m_is_dirty = false;
 
     public static PluginUpdater create(GameObject parent, ManualLogSource logger) {
         if (m_instance != null) {
@@ -357,6 +358,7 @@ public class PluginUpdater : MonoBehaviour {
         }
         m_instance = parent.AddComponent<PluginUpdater>();
         m_instance.m_logger = logger;
+        m_instance.m_is_dirty = false;
         return m_instance;
     }
 
@@ -366,20 +368,49 @@ public class PluginUpdater : MonoBehaviour {
         }
         m_instance = parent.AddComponent<PluginUpdater>();
         m_instance.m_logger = logger;
+        m_instance.m_is_dirty = false;
         return m_instance;
     }
 
     public void register(string name, float frequency, Action action) {
-        m_actions.Add(new UpdateInfo {
+        UpdateInfo[] new_actions = new UpdateInfo[m_actions.Length + 1];
+        for (int index = 0; index < this.m_actions.Length; index++) {
+            new_actions[index] = this.m_actions[index];
+        }
+        new_actions[m_actions.Length] = new UpdateInfo {
             name = name,
             frequency = frequency,
             elapsed = frequency,
             action = action
-        });
+        };
+        this.m_actions = new_actions;
+        m_is_dirty = true;
+    }
+
+    public void unregister(string name) {
+        UpdateInfo[] new_actions = new UpdateInfo[m_actions.Length - 1];
+        bool found = false;
+        int index = 0;
+        foreach (UpdateInfo info in this.m_actions) {
+            if (info.name == name) {
+                found = true;
+            } else {
+                new_actions[index++] = info;
+            }
+        }
+        if (!found) {
+            return;
+        }
+        this.m_actions = new_actions;
+        this.m_is_dirty = true;
     }
 
     public void Update() {
-        foreach (UpdateInfo info in m_actions) {
+        foreach (UpdateInfo info in this.m_actions) {
+            if (this.m_is_dirty) {
+                this.m_is_dirty = false;
+                return;
+            }
             if ((info.elapsed += Time.deltaTime) >= info.frequency) {
                 info.elapsed = 0f;
                 try {

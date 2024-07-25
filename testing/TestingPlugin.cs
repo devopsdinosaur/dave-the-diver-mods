@@ -14,6 +14,8 @@ using EvilFactory;
 using CodeStage.AntiCheat.ObscuredTypes;
 using DR;
 using System.Linq;
+using System.IO;
+using Common.Contents;
 
 [BepInPlugin("devopsdinosaur.davethediver.testing", "Testing", "0.0.1")]
 public class TestingPlugin : BasePlugin {
@@ -29,25 +31,7 @@ public class TestingPlugin : BasePlugin {
 			this.m_harmony.PatchAll();
 			PluginUpdater.create(this, logger);
 			PluginUpdater.Instance.register("global", 1.0f, global_update);
-			/*
-			ReflectionUtils.generate_trace_patcher(typeof(IntegratedItem), "C:/tmp/TracePatcher_IntegratedItem.cs", @"
-using DR;
-class MapperConfiguration {}
-",
-				new string[] {
-                    "get_ItemSpecID",
-                    "set_ItemSpecID"
-                }
-			);
-			Application.Quit();
-			*/
-
-			/*
-			TracePatcher_IntegratedItem.callback = delegate(TracePatcher_IntegratedItem.TracerParams args) {
-				debug_log(args.method_name);
-			};
-			*/
-			
+			PluginUpdater.Instance.register("keypress", 0f, keypress_update);
 			logger.LogInfo("devopsdinosaur.davethediver.testing v0.0.1 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
@@ -55,14 +39,52 @@ class MapperConfiguration {}
 	}
 
 	private static void global_update() {
-		debug_log(".");
+		
+	}
+
+	private static void keypress_update() {
+		if (Input.GetKeyDown(KeyCode.Backspace)) {
+			dump_all_objects();
+			Application.Quit();
+		} else if (Input.GetKeyDown(KeyCode.F1)) {
+			
+		}
+	}
+
+	private static void dump_all_objects() {
+		string DIRECTORY = "C:/tmp/dump";
+		Directory.CreateDirectory(DIRECTORY);
+		foreach (string file in Directory.GetFiles(DIRECTORY, "*.json", SearchOption.TopDirectoryOnly)) {
+			File.Delete(Path.Combine(DIRECTORY, file));
+		}
+		foreach (GameObject obj in SceneManager.GetActiveScene().GetRootGameObjects()) {
+			UnityUtils.json_dump(obj.transform, Path.Combine(DIRECTORY, obj.name + ".json"));
+		}
 	}
 
 	private static void debug_log(object text) {
 		logger.LogInfo(text);
 	}
 
-    [HarmonyPatch(typeof(DelayedDisappear), "SetTime")]
+	[HarmonyPatch(typeof(SushiBarManager), "Update")]
+	class HarmonyPatch_SushiBarManager_Update {
+
+		private static bool Prefix(SushiBarManager __instance) {
+			try {
+				if (!m_enabled.Value) {
+					return true;
+				}
+				//__instance.dave.MoveValue.stamina = 9999;
+				
+				return true;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_SushiBarManager_Update.Prefix ERROR - " + e);
+			}
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(DelayedDisappear), "SetTime")]
 	class HarmonyPatch_DelayedDisappear_SetTime {
 
 		private static bool Prefix(ref float inDisappearTime) {

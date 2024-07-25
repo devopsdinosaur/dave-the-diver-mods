@@ -7,8 +7,9 @@ using BepInEx.Unity.IL2CPP;
 using DR;
 using SushiBar.Customer;
 using UnityEngine;
+using Common.Contents;
 
-[BepInPlugin("devopsdinosaur.davethediver.super_dave", "Super Dave", "0.0.2")]
+[BepInPlugin("devopsdinosaur.davethediver.super_dave", "Super Dave", "0.0.3")]
 public class TestingPlugin : BasePlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.davethediver.super_dave");
@@ -26,6 +27,7 @@ public class TestingPlugin : BasePlugin {
 
     // Sushi Bar
     private static ConfigEntry<bool> m_infinite_customer_patience;
+	private static ConfigEntry<float> m_sushi_speed_boost;
 
 	public override void Load() {
 		logger = base.Log;
@@ -43,9 +45,10 @@ public class TestingPlugin : BasePlugin {
 
             // Sushi Bar
             m_infinite_customer_patience = this.Config.Bind<bool>("Sushi", "Infinite Customer Patience", false, "Set to true to make customers never storm off if the food/drinks are too slow.");
-			
+			m_sushi_speed_boost = this.Config.Bind<float>("Diving", "Sushi Speed Boost", 2.0f, "Permanent speed boost when working in sushi bar (float, default 2.0f [set to 0 to disable]).");
+
 			this.m_harmony.PatchAll();
-			logger.LogInfo("devopsdinosaur.davethediver.super_dave v0.0.2 loaded.");
+			logger.LogInfo("devopsdinosaur.davethediver.super_dave v0.0.3 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -175,4 +178,20 @@ public class TestingPlugin : BasePlugin {
 		}
 	}
 
+	[HarmonyPatch(typeof(DaveMoveValue), "speedMultiplier", MethodType.Getter)]
+	class HarmonyPatch_DaveMoveValue_speedMultiplier_Getter {
+
+		private static bool Prefix(ref float __result) {
+			try {
+				if (!m_enabled.Value || m_sushi_speed_boost.Value <= 0) {
+					return true;
+				}
+				__result = m_sushi_speed_boost.Value;
+				return false;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_DaveMoveValue_speedMultiplier_Getter.Prefix ERROR - " + e);
+			}
+			return true;
+		}
+	}
 }
