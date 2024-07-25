@@ -8,6 +8,7 @@ using DR;
 using SushiBar.Customer;
 using UnityEngine;
 using Common.Contents;
+using JetBrains.Annotations;
 
 [BepInPlugin("devopsdinosaur.davethediver.super_dave", "Super Dave", "0.0.3")]
 public class TestingPlugin : BasePlugin {
@@ -29,23 +30,31 @@ public class TestingPlugin : BasePlugin {
     private static ConfigEntry<bool> m_infinite_customer_patience;
 	private static ConfigEntry<float> m_sushi_speed_boost;
 
+	public ConfigEntry<T> migrate_option<T>(string section, string old_key, string key, T val, string description) {
+		ConfigEntry<T> new_opt = this.Config.Bind<T>(section, key, val, description);
+		ConfigEntry<T> old_opt = this.Config.Bind<T>(section, old_key, val, description);
+		new_opt.Value = old_opt.Value;
+		this.Config.Remove(old_opt.Definition);
+		return new_opt;
+	}
+
 	public override void Load() {
 		logger = base.Log;
 		try {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 			
 			// Diving
-			m_infinite_oxygen = this.Config.Bind<bool>("Diving", "Infinite Oxygen", false, "Set to true to have infinite oxygen when diving (and when not diving, but that's a freebie).");
-			m_invincible = this.Config.Bind<bool>("Diving", "Invincible", false, "Set to true to take no damage when hit.");
-			m_toxic_aura_enabled = this.Config.Bind<bool>("Diving", "Toxic Aura: Enabled", false, "Set to true to enable the instant-fish-killing aura around Dave.");
-			m_aura_radius = this.Config.Bind<float>("Diving", "Toxic Aura: Radius", 3.0f, "Radius (in meters?) around the character in which fish will be insta-killed, if Toxic Aura is enabled (float, default 3.0f).");
-			m_speed_boost = this.Config.Bind<float>("Diving", "Speed Boost", 2.0f, "Permanent speed boost when diving (float, default 2.0f [set to 0 to disable]).");
-			m_infinite_bullets = this.Config.Bind<bool>("Diving", "Infinite Bullets", false, "Set to true to have infinite bullets when diving.");
-            m_weightless_items = this.Config.Bind<bool>("Diving", "Weightless Items (Infinite Carry Weight)", false, "Set to true to have reduce the weight of all items to 0, effectively giving infinite carry weight and inventory space.");
+			m_infinite_oxygen = this.migrate_option<bool>("Diving", "Infinite Oxygen", "Diving - Infinite Oxygen", false, "Set to true to have infinite oxygen when diving (and when not diving, but that's a freebie).");
+			m_invincible = this.migrate_option<bool>("Diving", "Invincible", "Diving - Invincible", false, "Set to true to take no damage when hit.");
+			m_toxic_aura_enabled = this.migrate_option<bool>("Diving", "Toxic Aura: Enabled", "Diving - Toxic Aura: Enabled", false, "Set to true to enable the instant-fish-killing aura around Dave.");
+			m_aura_radius = this.migrate_option<float>("Diving", "Toxic Aura: Radius", "Diving - Toxic Aura: Radius", 3.0f, "Radius (in meters?) around the character in which fish will be insta-killed, if Toxic Aura is enabled (float, default 3.0f).");
+			m_speed_boost = this.migrate_option<float>("Diving", "Speed Boost", "Diving - Speed Boost", 2.0f, "Permanent speed boost when diving (float, default 2.0f [set to 0 to disable]).");
+			m_infinite_bullets = this.migrate_option<bool>("Diving", "Infinite Bullets", "Diving - Infinite Bullets", false, "Set to true to have infinite bullets when diving.");
+            m_weightless_items = this.migrate_option<bool>("Diving", "Weightless Items (Infinite Carry Weight)", "Diving - Weightless Items (Infinite Carry Weight)", false, "Set to true to have reduce the weight of all items to 0, effectively giving infinite carry weight and inventory space.");
 
             // Sushi Bar
-            m_infinite_customer_patience = this.Config.Bind<bool>("Sushi", "Infinite Customer Patience", false, "Set to true to make customers never storm off if the food/drinks are too slow.");
-			m_sushi_speed_boost = this.Config.Bind<float>("Diving", "Sushi Speed Boost", 2.0f, "Permanent speed boost when working in sushi bar (float, default 2.0f [set to 0 to disable]).");
+            m_infinite_customer_patience = this.migrate_option<bool>("Sushi", "Infinite Customer Patience", "Sushi - Infinite Customer Patience", false, "Set to true to make customers never storm off if the food/drinks are too slow.");
+			m_sushi_speed_boost = this.migrate_option<float>("Sushi", "Sushi Speed Boost", "Sushi - Speed Boost", 2.0f, "Permanent speed boost when working in sushi bar (float, default 2.0f [set to 0 to disable]).");
 
 			this.m_harmony.PatchAll();
 			logger.LogInfo("devopsdinosaur.davethediver.super_dave v0.0.3 loaded.");
