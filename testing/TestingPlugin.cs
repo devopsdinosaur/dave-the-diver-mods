@@ -16,6 +16,8 @@ using DR;
 using System.Linq;
 using System.IO;
 using Common.Contents;
+using SushiBar.Customer;
+using System.Runtime.InteropServices;
 
 [BepInPlugin("devopsdinosaur.davethediver.testing", "Testing", "0.0.1")]
 public class TestingPlugin : BasePlugin {
@@ -42,12 +44,14 @@ public class TestingPlugin : BasePlugin {
 		
 	}
 
+	private static bool m_trigger_one_shot = false;
+
 	private static void keypress_update() {
 		if (Input.GetKeyDown(KeyCode.Backspace)) {
 			dump_all_objects();
 			Application.Quit();
 		} else if (Input.GetKeyDown(KeyCode.F1)) {
-			
+			m_trigger_one_shot = true;
 		}
 	}
 
@@ -66,6 +70,28 @@ public class TestingPlugin : BasePlugin {
 		logger.LogInfo(text);
 	}
 
+	[HarmonyPatch(typeof(LobbyPlayer), "FixedUpdate")]
+	class HarmonyPatch_LobbyPlayer_FixedUpdate {
+
+		private static bool Prefix(LobbyPlayer __instance) {
+			try {
+				//if (!m_trigger_one_shot) {
+				//	return true;
+				//}
+				//m_trigger_one_shot = false;
+				//foreach (Il2CppSystem.Collections.Generic.KeyValuePair<int, CustomerEntity> item in DataManager.Instance.CustomerDataDic) {
+				//	debug_log($"[{item.Key}] - {item.Value.TID}");
+				//}
+				
+				//Application.Quit();
+				return true;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_LobbyPlayer_FixedUpdate.Prefix ERROR - " + e);
+			}
+			return true;
+		}
+	}
+
 	[HarmonyPatch(typeof(SushiBarManager), "Update")]
 	class HarmonyPatch_SushiBarManager_Update {
 
@@ -74,7 +100,6 @@ public class TestingPlugin : BasePlugin {
 				if (!m_enabled.Value) {
 					return true;
 				}
-				//__instance.dave.MoveValue.stamina = 9999;
 				
 				return true;
 			} catch (Exception e) {
@@ -105,31 +130,11 @@ public class TestingPlugin : BasePlugin {
 		private static void Postfix(PlayerCharacter __instance) {
 			try {
 				
-				/*
-				if ((elapsed += Time.deltaTime) >= 15) {				
-					foreach (GameObject obj in SceneManager.GetActiveScene().GetRootGameObjects()) {
-						UnityUtils.json_dump(obj.transform, "C:/tmp/dump/" + obj.name + ".json");
-					}
-					Application.Quit();
-				}
-				*/
-
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_PlayerCharacter_Update.Postfix ERROR - " + e);
 			}
 		}
 	}
-
-	/*
-	[HarmonyPatch(typeof(OverweightProperty), "GetDebuff")]
-	class HarmonyPatch_OverweightProperty_GetDebuff {
-
-		private static bool Prefix(ref OverweightProperty.Debuff __result) {
-			__result = null;
-			return false;
-		}
-	}
-	*/
 
 	/*
 	[HarmonyPatch(typeof(), "")]

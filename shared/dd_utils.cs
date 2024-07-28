@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using BepInEx.Unity.IL2CPP;
+using System.Runtime.InteropServices;
 
 public static class UnityUtils {
 
@@ -161,6 +162,17 @@ public static class ReflectionUtils {
 
     public static object get_field_value(object obj, string name) {
         return get_field(obj, name)?.GetValue(obj);
+    }
+
+    public static Il2CppSystem.Reflection.FieldInfo il2cpp_get_field(Il2CppSystem.Object obj, string name) {
+        return obj.GetIl2CppType().GetField(name, (Il2CppSystem.Reflection.BindingFlags) BINDING_FLAGS_ALL);
+    }
+
+    public static T il2cpp_get_field_value<T>(Il2CppSystem.Object obj, string name) {
+        return (T) Marshal.PtrToStructure(
+            Il2CppInterop.Runtime.IL2CPP.il2cpp_object_unbox(il2cpp_get_field(obj, name).GetValue(obj).Pointer),
+            (typeof(T).IsEnum ? Enum.GetUnderlyingType(typeof(T)) : typeof(T))
+        );
     }
 
     public static PropertyInfo get_property(object obj, string name) {

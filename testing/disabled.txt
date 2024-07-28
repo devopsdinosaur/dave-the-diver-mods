@@ -1,0 +1,141 @@
+﻿
+	private static void keypress_update() {
+		if (Input.GetKeyDown(KeyCode.Backspace)) {
+			dump_all_objects();
+			Application.Quit();
+		} else if (Input.GetKeyDown(KeyCode.F1)) {
+			//m_trigger_one_shot = true;
+			
+			//Il2CppSystem.Reflection.FieldInfo scene_start_time_field = ReflectionUtils.il2cpp_get_field(DayManager.Instance, "DJJAOHOGMGA");
+			//Il2CppSystem.Reflection.FieldInfo sim_time_field = ReflectionUtils.il2cpp_get_field(DayManager.Instance, "NDHNAFAPJNA");
+			
+			Il2CppSystem.TimeSpan evening_time_span = ReflectionUtils.il2cpp_get_field_value<Il2CppSystem.TimeSpan>(DayManager.Instance, "IFLADCPPOKP");
+			Il2CppSystem.TimeSpan evening_elapsed = ReflectionUtils.il2cpp_get_field_value<Il2CppSystem.TimeSpan>(DayManager.Instance, "IOGHDDCLEIM");
+			double remaining_seconds = (evening_time_span - evening_elapsed).TotalSeconds;
+			debug_log($"evening_time_span: {evening_time_span}, elapsed: {evening_elapsed}, remaining_seconds: {remaining_seconds}");
+			if (remaining_seconds < 85) {
+				ReflectionUtils.il2cpp_get_field(DayManager.Instance, "IOGHDDCLEIM").SetValue(DayManager.Instance, (new Il2CppSystem.TimeSpan()).BoxIl2CppObject());
+				debug_log($"just set it to {ReflectionUtils.il2cpp_get_field_value<Il2CppSystem.TimeSpan>(DayManager.Instance, "IOGHDDCLEIM")}");
+				
+			}
+			//DayManager.Instance.GetIl2CppType().GetField("IFLADCPPOKP", (Il2CppSystem.Reflection.BindingFlags) 0xFFFFFFF)?.SetValue(DayManager.Instance, new Il2CppSystem.TimeSpan(0, 0, 59, 0, 0).BoxIl2CppObject());
+
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "StartEveningTimer")]
+	class HarmonyPatch_DayManager_StartEveningTimer {
+		private static void Postfix() {
+			debug_log($"StartEveningTimer");
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "PauseEveningTimer")]
+	class HarmonyPatch_DayManager_PauseEveningTimer {
+		private static void Postfix() {
+			debug_log($"PauseEveningTimer");
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "SpendEveningHours")]
+	class HarmonyPatch_DayManager_SpendEveningHours {
+		private static void Postfix() {
+			debug_log($"SpendEveningHours");
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "ResumeEveningTimer")]
+	class HarmonyPatch_DayManager_ResumeEveningTimer {
+		private static void Postfix() {
+			debug_log($"ResumeEveningTimer");
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "SpendEveningHoursFromListMax")]
+	class HarmonyPatch_DayManager_SpendEveningHoursFromListMax {
+		private static void Postfix() {
+			debug_log($"SpendEveningHoursFromListMax");
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "SetPauseEveningTimer")]
+	class HarmonyPatch_DayManager_SetPauseEveningTimer {
+		private static void Postfix() {
+			debug_log($"SetPauseEveningTimer");
+		}
+	}
+
+	[HarmonyPatch(typeof(SushiBarCustomer), "LateUpdate")]
+	class HarmonyPatch_SushiBarCustomer_LateUpdate {
+
+		private static void Postfix(SushiBarCustomer __instance) {
+			try {
+				
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_SushiBarCustomer_LateUpdate.Prefix ERROR - " + e);
+			}
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "InitEveningTimer")]
+	class HarmonyPatch_DayManager_InitEveningTimer {
+		private static void Postfix() {
+			debug_log($"InitEveningTimer");
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "GetElaspedEveningHourSpace")]
+	class HarmonyPatch_DayManager_GetElaspedEveningHourSpace {
+		private static void Postfix(ref int __result) {
+			debug_log($"GetElaspedEveningHourSpace - __result: {__result}");
+			foreach (SushiBarCustomerManager manager in Resources.FindObjectsOfTypeAll<SushiBarCustomerManager>()) {
+				debug_log($"curveType: {manager.customerCurce}");
+				CustomerEnterCurveDictionary curves = manager.enterCollections.enterCurveList;
+				foreach (CustomerEnterCurveType key in curves.Keys) {
+					AnimationCurve curve = curves[key].enterCurve;
+					for (int index = 0; index < curve.length; index++) {
+						Keyframe frame = curve.GetKey(index);
+						debug_log($"[{key}][{index}] - value: {frame.value}, time: {frame.time}, inTangent: {frame.inTangent}, inWeight: {frame.inWeight}, outTangent: {frame.outTangent}, outWeight: {frame.outWeight}");
+						frame.time = 0;
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "GetRemainEveningHours")]
+	class HarmonyPatch_DayManager_GetRemainEveningHours {
+		private static void Postfix(ref Il2CppSystem.TimeSpan __result) {
+			//debug_log($"GetRemainEveningHours");
+			if (__result.TotalSeconds < 60) {
+				__result = new Il2CppSystem.TimeSpan(0, 1, 30);
+			}
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "GetElapsedEveningHours")]
+	class HarmonyPatch_DayManager_GetElapsedEveningHours {
+		private static void Postfix(ref Il2CppSystem.TimeSpan __result) {
+			//debug_log($"GetElapsedEveningHours - __result: {__result}");
+			//__result = new Il2CppSystem.TimeSpan();
+		}
+	}
+
+	[HarmonyPatch(typeof(DayManager), "GetElaspedEveningHourRatio")]
+	class HarmonyPatch_DayManager_GetElaspedEveningHourRatio {
+		private static void Postfix(ref float __result) {
+			//debug_log($"GetElaspedEveningHourRatio - __result: {__result}");
+		}
+	}
+
+	/*
+	[HarmonyPatch(typeof(OverweightProperty), "GetDebuff")]
+	class HarmonyPatch_OverweightProperty_GetDebuff {
+
+		private static bool Prefix(ref OverweightProperty.Debuff __result) {
+			__result = null;
+			return false;
+		}
+	}
+	*/
