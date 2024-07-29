@@ -52,6 +52,24 @@ public class TestingPlugin : BasePlugin {
 			Application.Quit();
 		} else if (Input.GetKeyDown(KeyCode.F1)) {
 			m_trigger_one_shot = true;
+			
+		}
+	}
+
+	[HarmonyPatch(typeof(Farm.FarmPlayerView), "Move")]
+	class HarmonyPatch_Farm_FarmPlayerView_Move {
+
+		private static void Postfix(Farm.FarmPlayerView __instance) {
+			try {
+				if (!m_trigger_one_shot) {
+					return;
+				}
+				m_trigger_one_shot = false;
+				debug_log(__instance.transform.position);
+				__instance.transform.position = new Vector3(__instance.transform.position.x, __instance.transform.position.y, 5);
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_Farm_FarmPlayerView_Move.Postfix ERROR - " + e);
+			}
 		}
 	}
 
@@ -75,20 +93,42 @@ public class TestingPlugin : BasePlugin {
 
 		private static bool Prefix(LobbyPlayer __instance) {
 			try {
-				//if (!m_trigger_one_shot) {
-				//	return true;
-				//}
-				//m_trigger_one_shot = false;
-				//foreach (Il2CppSystem.Collections.Generic.KeyValuePair<int, CustomerEntity> item in DataManager.Instance.CustomerDataDic) {
-				//	debug_log($"[{item.Key}] - {item.Value.TID}");
-				//}
-				
-				//Application.Quit();
+				if (!m_trigger_one_shot) {
+					return true;
+				}
+				m_trigger_one_shot = false;
+				/*
+				foreach (SpecDataBase item in Resources.FindObjectsOfTypeAll<SpecDataBase>()) {
+					debug_log($"{item.Name}");
+					foreach (BuffDebuffEffectData buff in item.buffDatas) {
+						debug_log($"--> type: {buff.BUFFTYPE}, val1: {buff.buffvalue1}");
+					}
+				}
+				foreach (Il2CppSystem.Collections.Generic.KeyValuePair<int, BuffDebuffEffectData> item in DataManager.Instance.BuffEffectDataDic) {
+					debug_log($"key: {item.Key}, type: {item.Value.BUFFTYPE}, suid: {item.Value.suid}, val1: {item.Value.buffvalue1}");
+				}
+				foreach (Il2CppSystem.Reflection.FieldInfo field in (new FishFarm.FishFarmPlayerView()).GetIl2CppType().GetFields((Il2CppSystem.Reflection.BindingFlags) 0xFFFFFFF)) {
+					debug_log($"{field.Name} {field.FieldType}");
+				}
+				*/
+				Application.Quit();
 				return true;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_LobbyPlayer_FixedUpdate.Prefix ERROR - " + e);
 			}
 			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(TalkNPCPanel), "Init")]
+	class HarmonyPatch_TalkNPCPanel_Init {
+
+		private static void Postfix() {
+			try {
+
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_TalkNPCPanel_Init.Postfix ERROR - " + e);
+			}
 		}
 	}
 
