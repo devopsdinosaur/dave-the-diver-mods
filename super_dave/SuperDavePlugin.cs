@@ -11,7 +11,7 @@ using UnityEngine;
 using Common.Contents;
 
 [BepInPlugin("devopsdinosaur.davethediver.super_dave", "Super Dave", "0.0.6")]
-public class TestingPlugin : BasePlugin {
+public class SuperDavePlugin : BasePlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.davethediver.super_dave");
 	public static ManualLogSource logger;
