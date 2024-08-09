@@ -9,11 +9,28 @@ using DR;
 using SushiBar.Customer;
 using UnityEngine;
 using Common.Contents;
+using System.Runtime.InteropServices;
 
-[BepInPlugin("devopsdinosaur.davethediver.super_dave", "Super Dave", "0.0.6")]
+public static class PluginInfo {
+
+    public const string TITLE = "Super Dave";
+    public const string NAME = "super_dave";
+
+    public const string VERSION = "0.0.7";
+    public static string[] CHANGELOG = new string[] {
+        "-- v0.0.7 --",
+		"* Sleep Aura no longer hits already sleeping fish"
+    };
+
+    public const string AUTHOR = "devopsdinosaur";
+    public const string GAME = "davethediver";
+    public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+}
+
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
 public class SuperDavePlugin : BasePlugin {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.davethediver.super_dave");
+	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 	public static ManualLogSource logger;
 	private static ConfigEntry<bool> m_enabled;
 
@@ -85,7 +102,7 @@ public class SuperDavePlugin : BasePlugin {
 			m_staff_walk_multiplier = this.Config.Bind<float>("Sushi", "Sushi - Walk Multiplier", 0f, "Multiplier applied to sushi bar staff walking speed [note: this also affects Dave on top of 'Sushi - Speed Boost'] (float, default 0f [ < 1 == faster, < 1 == slower, set to 0 to disable]).");
 
 			this.m_harmony.PatchAll();
-			logger.LogInfo("devopsdinosaur.davethediver.super_dave v0.0.6 loaded.");
+			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -180,7 +197,16 @@ public class SuperDavePlugin : BasePlugin {
 					foreach (FishInteractionBody fish in Resources.FindObjectsOfTypeAll<FishInteractionBody>()) {
 						if (Vector3.Distance(__instance.transform.position, fish.transform.position) <= m_aura_radius.Value) {
 							if (m_toxic_aura_sleep.Value) {
-								fish.gameObject.GetComponent<BuffHandler>().AddBuff(SLEEP_BUFF_ID);
+								BuffHandler buff_handler = fish.gameObject.GetComponent<BuffHandler>();
+								Il2CppSystem.Object buff_dict = ReflectionUtils.il2cpp_get_field(buff_handler, "CJCBPPIBGLB").GetValue(buff_handler);
+								bool is_asleep = false;
+								if (ReflectionUtils.il2cpp_get_field_value<int>(buff_dict, "count") > 0) {
+									// TODO: Assuming any buff is sleep is not likely to work.
+									is_asleep = true;
+								}
+								if (!is_asleep) {
+									buff_handler.AddBuff(SLEEP_BUFF_ID);
+								}
 							} else {
 								fish.gameObject.GetComponent<Damageable>().OnDie();
 							}	

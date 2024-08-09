@@ -97,7 +97,7 @@ public class TestingPlugin : BasePlugin {
 					return true;
 				}
 				m_trigger_one_shot = false;
-				/*
+				///*
 				foreach (SpecDataBase item in Resources.FindObjectsOfTypeAll<SpecDataBase>()) {
 					debug_log($"{item.Name}");
 					foreach (BuffDebuffEffectData buff in item.buffDatas) {
@@ -106,12 +106,17 @@ public class TestingPlugin : BasePlugin {
 				}
 				foreach (Il2CppSystem.Collections.Generic.KeyValuePair<int, BuffDebuffEffectData> item in DataManager.Instance.BuffEffectDataDic) {
 					debug_log($"key: {item.Key}, type: {item.Value.BUFFTYPE}, suid: {item.Value.suid}, val1: {item.Value.buffvalue1}");
+					if (item.Key == 14080415) {
+						item.Value.buffvalue1 = 9999999;
+						item.Value.buffvalue2 = 9999999;
+						item.Value.buffvalue3 = 9999999;
+					}
 				}
 				foreach (Il2CppSystem.Reflection.FieldInfo field in (new FishFarm.FishFarmPlayerView()).GetIl2CppType().GetFields((Il2CppSystem.Reflection.BindingFlags) 0xFFFFFFF)) {
 					debug_log($"{field.Name} {field.FieldType}");
 				}
-				*/
-				Application.Quit();
+				//*/
+				//Application.Quit();
 				return true;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_LobbyPlayer_FixedUpdate.Prefix ERROR - " + e);
