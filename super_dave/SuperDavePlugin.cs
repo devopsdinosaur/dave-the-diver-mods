@@ -17,10 +17,10 @@ public static class PluginInfo {
     public const string NAME = "super_dave";
 
     public const string VERSION = "0.0.7";
-    public static string[] CHANGELOG = new string[] {
-        "-- v0.0.7 --",
-		"* Sleep Aura no longer hits already sleeping fish"
-    };
+    public static string CHANGELOG = @"
+-- v0.0.7 --
+* Sleep Aura no longer hits already sleeping fish
+";
 
     public const string AUTHOR = "devopsdinosaur";
     public const string GAME = "davethediver";
@@ -186,6 +186,8 @@ public class SuperDavePlugin : BasePlugin {
 		private const float UPDATE_FREQUENCY = 0.1f;
 		private static float m_elapsed = UPDATE_FREQUENCY;
 		private const int SLEEP_BUFF_ID = 14080415;
+		private const float SLEEP_BUFF_VALUE = 9999999999f;
+		private static bool m_did_set_sleep_buff_value = false;
 
 		private static void Postfix(CharacterController2D __instance) {
 			try {
@@ -197,11 +199,17 @@ public class SuperDavePlugin : BasePlugin {
 					foreach (FishInteractionBody fish in Resources.FindObjectsOfTypeAll<FishInteractionBody>()) {
 						if (Vector3.Distance(__instance.transform.position, fish.transform.position) <= m_aura_radius.Value) {
 							if (m_toxic_aura_sleep.Value) {
+								if (!m_did_set_sleep_buff_value) {
+									DataManager.Instance.BuffEffectDataDic[SLEEP_BUFF_ID].buffvalue1 = SLEEP_BUFF_VALUE;
+									DataManager.Instance.BuffEffectDataDic[SLEEP_BUFF_ID].buffvalue2 = SLEEP_BUFF_VALUE;
+									DataManager.Instance.BuffEffectDataDic[SLEEP_BUFF_ID].buffvalue3 = SLEEP_BUFF_VALUE;
+								}
 								BuffHandler buff_handler = fish.gameObject.GetComponent<BuffHandler>();
 								Il2CppSystem.Object buff_dict = ReflectionUtils.il2cpp_get_field(buff_handler, "CJCBPPIBGLB").GetValue(buff_handler);
 								bool is_asleep = false;
 								if (ReflectionUtils.il2cpp_get_field_value<int>(buff_dict, "count") > 0) {
-									// TODO: Assuming any buff is sleep is not likely to work.
+									// TODO: Assuming any buff is sleep is not likely to work.  Should dig into the dict entries.
+									// debug_log(buff_handler.HasBuffType(BuffType.Sleep));
 									is_asleep = true;
 								}
 								if (!is_asleep) {
