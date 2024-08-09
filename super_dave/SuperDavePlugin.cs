@@ -181,7 +181,7 @@ public class SuperDavePlugin : BasePlugin {
 	}
 
 	[HarmonyPatch(typeof(CharacterController2D), "FixedUpdate")]
-	class HarmonyPatch_CharacterController2D_LateUpdate {
+	class HarmonyPatch_CharacterController2D_FixedUpdate {
 
 		private const float UPDATE_FREQUENCY = 0.1f;
 		private static float m_elapsed = UPDATE_FREQUENCY;
@@ -202,18 +202,19 @@ public class SuperDavePlugin : BasePlugin {
 								if (!m_did_set_sleep_buff_value) {
 									DataManager.Instance.BuffEffectDataDic[SLEEP_BUFF_ID].buffvalue1 = SLEEP_BUFF_VALUE;
 									DataManager.Instance.BuffEffectDataDic[SLEEP_BUFF_ID].buffvalue2 = SLEEP_BUFF_VALUE;
-									DataManager.Instance.BuffEffectDataDic[SLEEP_BUFF_ID].buffvalue3 = SLEEP_BUFF_VALUE;
 								}
 								BuffHandler buff_handler = fish.gameObject.GetComponent<BuffHandler>();
-								Il2CppSystem.Object buff_dict = ReflectionUtils.il2cpp_get_field(buff_handler, "CJCBPPIBGLB").GetValue(buff_handler);
-								bool is_asleep = false;
-								if (ReflectionUtils.il2cpp_get_field_value<int>(buff_dict, "count") > 0) {
-									// TODO: Assuming any buff is sleep is not likely to work.  Should dig into the dict entries.
-									// debug_log(buff_handler.HasBuffType(BuffType.Sleep));
-									is_asleep = true;
-								}
-								if (!is_asleep) {
-									buff_handler.AddBuff(SLEEP_BUFF_ID);
+								if (buff_handler != null) {
+									Il2CppSystem.Object buff_dict = ReflectionUtils.il2cpp_get_field(buff_handler, "CJCBPPIBGLB")?.GetValue(buff_handler);
+									bool is_asleep = false;
+									if (buff_dict != null && ReflectionUtils.il2cpp_get_field_value<int>(buff_dict, "count") > 0) {
+										// TODO: Assuming any buff is sleep is not likely to work.  Should dig into the dict entries.
+										// debug_log(buff_handler.HasBuffType(BuffType.Sleep));
+										is_asleep = true;
+									}
+									if (!is_asleep) {
+										buff_handler.AddBuff(SLEEP_BUFF_ID);
+									}
 								}
 							} else {
 								fish.gameObject.GetComponent<Damageable>().OnDie();
@@ -222,7 +223,7 @@ public class SuperDavePlugin : BasePlugin {
 					}
 				}
 			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_CharacterController2D_LateUpdate.Prefix ERROR - " + e);
+				logger.LogError("** HarmonyPatch_CharacterController2D_FixedUpdate.Prefix ERROR - " + e);
 			}
 		}
 	}

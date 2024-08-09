@@ -125,7 +125,7 @@ public class TestingPlugin : BasePlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(TalkNPCPanel), "Init")]
+    [HarmonyPatch(typeof(TalkNPCPanel), "Init")]
 	class HarmonyPatch_TalkNPCPanel_Init {
 
 		private static void Postfix() {
@@ -181,7 +181,36 @@ public class TestingPlugin : BasePlugin {
 		}
 	}
 
-	/*
+    // =====================================================================================================
+    // == Experimenting
+    // =====================================================================================================
+
+    [HarmonyPatch(typeof(Farm.FarmCore), "Watering")]
+    class HarmonyPatch_Farm_FamrCore_Watering {
+
+        private static void Postfix(int itemIdx, int x, int y) {
+            try {
+                debug_log($"Watering - itemIdx: {itemIdx}, x: {x}, y: {y}");
+            } catch (Exception e) {
+                logger.LogError("** XXXXX.Postfix ERROR - " + e);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(CountSecondaryWeaponController), "GetRemainedFireCount")]
+    class HarmonyPatch_CountSecondaryWeaponController_GetRemainedFireCount {
+
+        private static void Postfix(ref float __result) {
+            try {
+				debug_log($"CountSecondaryWeaponController: {__result}");
+				__result = 99;
+            } catch (Exception e) {
+                logger.LogError("** HarmonyPatch_CountSecondaryWeaponController_GetRemainedFireCount.Postfix ERROR - " + e);
+            }
+        }
+    }
+
+    /*
 	[HarmonyPatch(typeof(), "")]
 	class HarmonyPatch_ {
 
