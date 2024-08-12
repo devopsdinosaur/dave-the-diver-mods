@@ -17,10 +17,6 @@ public static class PluginInfo {
     public const string NAME = "super_dave";
 
     public const string VERSION = "0.0.7";
-    public static string CHANGELOG = @"
--- v0.0.7 --
-* Sleep Aura no longer hits already sleeping fish
-";
 
     public const string AUTHOR = "devopsdinosaur";
     public const string GAME = "davethediver";
@@ -108,7 +104,7 @@ public class SuperDavePlugin : BasePlugin {
 		}
 	}
 
-	private static void debug_log(object text) {
+	private static void _debug_log(object text) {
 		logger.LogInfo(text);
 	}
 
@@ -116,16 +112,20 @@ public class SuperDavePlugin : BasePlugin {
 	// == Boat
 	// ================================================================================
 
-	[HarmonyPatch(typeof(LobbyPlayer), "Init")]
+	[HarmonyPatch(typeof(LobbyPlayer), "LateUpdate")]
 	class HarmonyPatch_LobbyPlayer_Init {
+
+		private static int m_modified_instance_hash = 0;
 
 		private static void Postfix(LobbyPlayer __instance) {
 			try {
-				if (m_enabled.Value && m_boat_walk_speed_boost.Value >= 0) {
+				if (m_enabled.Value && m_modified_instance_hash != __instance.GetHashCode() && m_boat_walk_speed_boost.Value > 0) {
+					m_modified_instance_hash = __instance.GetHashCode();
 					ReflectionUtils.il2cpp_get_field(__instance, "m_MoveSpeed").SetValue(
 						__instance, 
-						ReflectionUtils.il2cpp_get_field_value<float>(__instance, "m_moveSpeed") + m_boat_walk_speed_boost.Value
+						ReflectionUtils.il2cpp_get_field_value<float>(__instance, "m_MoveSpeed") + m_boat_walk_speed_boost.Value
 					);
+					_debug_log(ReflectionUtils.il2cpp_get_field_value<float>(__instance, "m_MoveSpeed"));
 				}
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_LobbyPlayer_Init.Postfix ERROR - " + e);
@@ -352,7 +352,7 @@ public class SuperDavePlugin : BasePlugin {
 		private static void Postfix(ref float __result) {
 			try {
 				if (m_enabled.Value && m_staff_cook_multiplier.Value > 0) {
-					__result *= m_staff_cook_multiplier.Value;
+					__result /= m_staff_cook_multiplier.Value;
 				}
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_SushiBarStaffBase_CalcCookingTime.Postfix ERROR - " + e);
