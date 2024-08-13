@@ -65,7 +65,7 @@ public class TestingPlugin : BasePlugin {
 					return;
 				}
 				m_trigger_one_shot = false;
-				debug_log(__instance.transform.position);
+				_debug_log(__instance.transform.position);
 				__instance.transform.position = new Vector3(__instance.transform.position.x, __instance.transform.position.y, 5);
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_Farm_FarmPlayerView_Move.Postfix ERROR - " + e);
@@ -84,7 +84,7 @@ public class TestingPlugin : BasePlugin {
 		}
 	}
 
-	private static void debug_log(object text) {
+	private static void _debug_log(object text) {
 		logger.LogInfo(text);
 	}
 
@@ -99,13 +99,13 @@ public class TestingPlugin : BasePlugin {
 				m_trigger_one_shot = false;
 				///*
 				foreach (SpecDataBase item in Resources.FindObjectsOfTypeAll<SpecDataBase>()) {
-					debug_log($"{item.Name}");
+					_debug_log($"{item.Name}");
 					foreach (BuffDebuffEffectData buff in item.buffDatas) {
-						debug_log($"--> type: {buff.BUFFTYPE}, val1: {buff.buffvalue1}");
+						_debug_log($"--> type: {buff.BUFFTYPE}, val1: {buff.buffvalue1}");
 					}
 				}
 				foreach (Il2CppSystem.Collections.Generic.KeyValuePair<int, BuffDebuffEffectData> item in DataManager.Instance.BuffEffectDataDic) {
-					debug_log($"key: {item.Key}, type: {item.Value.BUFFTYPE}, suid: {item.Value.suid}, val1: {item.Value.buffvalue1}");
+					_debug_log($"key: {item.Key}, type: {item.Value.BUFFTYPE}, suid: {item.Value.suid}, val1: {item.Value.buffvalue1}");
 					if (item.Key == 14080415) {
 						item.Value.buffvalue1 = 9999999;
 						item.Value.buffvalue2 = 9999999;
@@ -113,7 +113,7 @@ public class TestingPlugin : BasePlugin {
 					}
 				}
 				foreach (Il2CppSystem.Reflection.FieldInfo field in (new FishFarm.FishFarmPlayerView()).GetIl2CppType().GetFields((Il2CppSystem.Reflection.BindingFlags) 0xFFFFFFF)) {
-					debug_log($"{field.Name} {field.FieldType}");
+					_debug_log($"{field.Name} {field.FieldType}");
 				}
 				//*/
 				//Application.Quit();
@@ -159,7 +159,7 @@ public class TestingPlugin : BasePlugin {
 
 		private static bool Prefix(ref float inDisappearTime) {
 			try {
-				debug_log($"HarmonyPatch_DelayedDisappear_SetTime - inDisappearTime: {inDisappearTime}");
+				_debug_log($"HarmonyPatch_DelayedDisappear_SetTime - inDisappearTime: {inDisappearTime}");
 				inDisappearTime *= 10;
 				return true;
 			} catch (Exception e) {
@@ -190,27 +190,67 @@ public class TestingPlugin : BasePlugin {
 
         private static void Postfix(int itemIdx, int x, int y) {
             try {
-                debug_log($"Watering - itemIdx: {itemIdx}, x: {x}, y: {y}");
+                _debug_log($"Watering - itemIdx: {itemIdx}, x: {x}, y: {y}");
             } catch (Exception e) {
                 logger.LogError("** XXXXX.Postfix ERROR - " + e);
             }
         }
     }
 
-    [HarmonyPatch(typeof(CountSecondaryWeaponController), "GetRemainedFireCount")]
-    class HarmonyPatch_CountSecondaryWeaponController_GetRemainedFireCount {
+    [HarmonyPatch(typeof(PickupObjectCommand_SO), "SuccessInteraction")]
+    class HarmonyPatch__PickupObjectCommand_SO_SuccessInteraction {
 
-        private static void Postfix(ref float __result) {
+        private static void Postfix() {
             try {
-				debug_log($"CountSecondaryWeaponController: {__result}");
-				__result = 99;
+				_debug_log($"HarmonyPatch__PickupObjectCommand_SO_SuccessInteraction");
             } catch (Exception e) {
                 logger.LogError("** HarmonyPatch_CountSecondaryWeaponController_GetRemainedFireCount.Postfix ERROR - " + e);
             }
         }
     }
 
-    /*
+	[HarmonyPatch(typeof(BaseInteractionCommand_SO), "HoldExecute")]
+	class HarmonyPatch_BaseInteractionCommand_SO_HoldExecute {
+
+		private static void Postfix(BaseCharacter player, float duration) {
+			_debug_log($"HarmonyPatch_BaseInteractionCommand_SO_HoldExecute - duration: {duration}");
+		}
+	}
+
+	[HarmonyPatch(typeof(BaseInteractionCommand_SO), "UpExecute")]
+	class HarmonyPatch_BaseInteractionCommand_SO_UpExecute {
+
+		private static void Postfix(BaseCharacter player) {
+			_debug_log($"HarmonyPatch_BaseInteractionCommand_SO_UpExecute");
+		}
+	}
+
+	[HarmonyPatch(typeof(BaseInteractionCommand_SO), "DownExecute")]
+	class HarmonyPatch_BaseInteractionCommand_SO_DownExecute {
+
+		private static void Postfix(BaseCharacter player) {
+			_debug_log($"HarmonyPatch_BaseInteractionCommand_SO_DownExecute");
+		}
+	}
+
+	/*
+	[HarmonyPatch(typeof(PlayerCharacter), "AvailableLiftDroneCount", MethodType.Getter)]
+	class HarmonyPatch_PlayerCharacter_AvailableLiftDroneCount {
+
+		private static bool Prefix(ref int __result) {
+			try {
+				_debug_log("AvailableLiftDroneCount!!!!!!!!!!!!!");
+				__result = 99;
+				return false;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_PlayerCharacter_AvailableLiftDroneCount.Prefix ERROR - " + e);
+			}
+			return true;
+		}
+	}
+	*/
+
+	/*
 	[HarmonyPatch(typeof(), "")]
 	class HarmonyPatch_ {
 

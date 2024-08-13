@@ -42,6 +42,9 @@ public class SuperDavePlugin : BasePlugin {
 	private static ConfigEntry<float> m_speed_boost;
 	private static ConfigEntry<bool> m_infinite_bullets;
     private static ConfigEntry<bool> m_weightless_items;
+	private static ConfigEntry<bool> m_infinite_crab_traps;
+	private static ConfigEntry<bool> m_infinite_drones;
+	private static ConfigEntry<bool> m_large_pickups;
 
 	// Farm
 	private static ConfigEntry<float> m_farm_walk_multiplier;
@@ -56,6 +59,9 @@ public class SuperDavePlugin : BasePlugin {
 	private static ConfigEntry<float> m_staff_cook_multiplier;
 	private static ConfigEntry<float> m_staff_walk_multiplier;
 	private static ConfigEntry<bool> m_infinite_wasabi;
+
+	private static bool m_crab_traps_unlocked = false;
+	private static bool m_drones_unlocked = false;
 
 	public ConfigEntry<T> migrate_option<T>(string section, string old_key, string key, T val, string description) {
 		ConfigEntry<T> new_opt = this.Config.Bind<T>(section, key, val, description);
@@ -81,8 +87,11 @@ public class SuperDavePlugin : BasePlugin {
 
 			// Diving
 			m_infinite_bullets = this.migrate_option<bool>("Diving", "Infinite Bullets", "Diving - Infinite Bullets", false, "Set to true to have infinite bullets when diving.");
+			m_infinite_crab_traps = this.Config.Bind<bool>("Diving", "Diving - Infinite Crab Traps", false, "Set to true to enable infinite crab traps.");
+			m_infinite_drones = this.Config.Bind<bool>("Diving", "Diving - Infinite Drones", false, "Set to true to enable infinite salvage drones.");
 			m_infinite_oxygen = this.migrate_option<bool>("Diving", "Infinite Oxygen", "Diving - Infinite Oxygen", false, "Set to true to have infinite oxygen when diving (and when not diving, but that's a freebie).");
 			m_invincible = this.migrate_option<bool>("Diving", "Invincible", "Diving - Invincible", false, "Set to true to take no damage when hit.");
+			m_large_pickups = this.Config.Bind<bool>("Diving", "Diving - Enable Large Pickups", false, "Set to true to enable large fish to be picked up without the need for drones.");
 			m_speed_boost = this.migrate_option<float>("Diving", "Speed Boost", "Diving - Speed Boost", 0f, "Permanent speed boost when diving (float, default 0f [set to 0 to disable]).");
 			m_toxic_aura_enabled = this.migrate_option<bool>("Diving", "Toxic Aura: Enabled", "Diving - Toxic Aura: Enabled", false, "Set to true to enable the instant-fish-killing (or sleeping if 'Toxic Aura: Sleep Effect' is true) aura around Dave.");
 			m_toxic_aura_sleep = this.Config.Bind<bool>("Diving", "Diving - Toxic Aura: Sleep Effect", false, "Set to true to switch from killing aura to sleep-inducing aura.");
@@ -136,6 +145,19 @@ public class SuperDavePlugin : BasePlugin {
 	// ================================================================================
 	// == Diving
 	// ================================================================================
+
+	[HarmonyPatch(typeof(PlayerCharacter), "Awake")]
+	class HarmonyPatch_PlayerCharacter_Awake {
+
+		private static void Postfix(PlayerCharacter __instance) {
+			try {
+				m_drones_unlocked = __instance.AvailableLiftDroneCount > 0;
+				m_crab_traps_unlocked = __instance.AvailableCrabTrapCount > 0;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_PlayerCharacter_Awake.Postfix ERROR - " + e);
+			}
+		}
+	}
 
 	[HarmonyPatch(typeof(PlayerBreathHandler), "SetHP")]
 	class HarmonyPatch_PlayerBreathHandler_SetHP {
@@ -197,6 +219,9 @@ public class SuperDavePlugin : BasePlugin {
 				m_elapsed = 0f;
 				if (m_toxic_aura_enabled.Value) {
 					foreach (FishInteractionBody fish in Resources.FindObjectsOfTypeAll<FishInteractionBody>()) {
+						if (fish.InteractionType == FishInteractionBody.FishInteractionType.Calldrone && m_large_pickups.Value) {
+							fish.InteractionType = FishInteractionBody.FishInteractionType.Pickup;
+						}
 						if (Vector3.Distance(__instance.transform.position, fish.transform.position) <= m_aura_radius.Value) {
 							if (m_toxic_aura_sleep.Value) {
 								if (!m_did_set_sleep_buff_value) {
@@ -214,6 +239,8 @@ public class SuperDavePlugin : BasePlugin {
 									}
 									if (!is_asleep) {
 										buff_handler.AddBuff(SLEEP_BUFF_ID);
+									} else if (fish.InteractionType == FishInteractionBody.FishInteractionType.Pickup) {
+										
 									}
 								}
 							} else {
@@ -263,6 +290,34 @@ public class SuperDavePlugin : BasePlugin {
             return true;
         }
     }
+
+	[HarmonyPatch(typeof(PlayerCharacter), "IsCrabTrapAvailable", MethodType.Getter)]
+	class HarmonyPatch_PlayerCharacter_IsCrabTrapAvailable {
+
+		private static void Postfix(ref bool __result) {
+			try {
+				if (m_enabled.Value && m_infinite_crab_traps.Value && m_crab_traps_unlocked) {
+					__result = true;	
+				}
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_PlayerCharacter_IsCrabTrapAvailable.Postfix ERROR - " + e);
+			}
+		}
+	}
+
+	[HarmonyPatch(typeof(PlayerCharacter), "IsDroneAvailable", MethodType.Getter)]
+	class HarmonyPatch_PlayerCharacter_IsDroneAvailable {
+
+		private static void Postfix(ref bool __result) {
+			try {
+				if (m_enabled.Value && m_infinite_drones.Value && m_crab_traps_unlocked) {
+					__result = true;
+				}
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_PlayerCharacter_IsDroneAvailable.Postfix ERROR - " + e);
+			}
+		}
+	}
 
 	// ================================================================================
 	// == Farm
