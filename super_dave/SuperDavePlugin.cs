@@ -60,8 +60,11 @@ public class SuperDavePlugin : BasePlugin {
 	private static ConfigEntry<float> m_staff_walk_multiplier;
 	private static ConfigEntry<bool> m_infinite_wasabi;
 
-	private static bool m_crab_traps_unlocked = false;
-	private static bool m_drones_unlocked = false;
+	class DivingVars {
+		public bool crab_traps_unlocked = false;
+		public bool drones_unlocked = false;
+	}
+	private static DivingVars m_diving_vars = null;
 
 	public ConfigEntry<T> migrate_option<T>(string section, string old_key, string key, T val, string description) {
 		ConfigEntry<T> new_opt = this.Config.Bind<T>(section, key, val, description);
@@ -134,7 +137,6 @@ public class SuperDavePlugin : BasePlugin {
 						__instance, 
 						ReflectionUtils.il2cpp_get_field_value<float>(__instance, "m_MoveSpeed") + m_boat_walk_speed_boost.Value
 					);
-					_debug_log(ReflectionUtils.il2cpp_get_field_value<float>(__instance, "m_MoveSpeed"));
 				}
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_LobbyPlayer_Init.Postfix ERROR - " + e);
@@ -145,19 +147,6 @@ public class SuperDavePlugin : BasePlugin {
 	// ================================================================================
 	// == Diving
 	// ================================================================================
-
-	[HarmonyPatch(typeof(PlayerCharacter), "Awake")]
-	class HarmonyPatch_PlayerCharacter_Awake {
-
-		private static void Postfix(PlayerCharacter __instance) {
-			try {
-				m_drones_unlocked = __instance.AvailableLiftDroneCount > 0;
-				m_crab_traps_unlocked = __instance.AvailableCrabTrapCount > 0;
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_PlayerCharacter_Awake.Postfix ERROR - " + e);
-			}
-		}
-	}
 
 	[HarmonyPatch(typeof(PlayerBreathHandler), "SetHP")]
 	class HarmonyPatch_PlayerBreathHandler_SetHP {
@@ -263,11 +252,19 @@ public class SuperDavePlugin : BasePlugin {
 
 		private static void Postfix(PlayerCharacter __instance) {
 			try {
-				if (!m_enabled.Value || !m_infinite_bullets.Value || (m_elapsed += Time.deltaTime) < UPDATE_FREQUENCY) {
+				if (!m_enabled.Value || (m_elapsed += Time.deltaTime) < UPDATE_FREQUENCY) {
 					return;
 				}
+				if (m_diving_vars == null) {
+					m_diving_vars = new DivingVars() {
+						drones_unlocked = __instance.AvailableLiftDroneCount > 0,
+						crab_traps_unlocked = __instance.AvailableCrabTrapCount > 0
+					};
+				}
 				try {
-					__instance?.CurrentInstanceItemInventory?.gunHandler.ForceSetBulletCount(999);
+					if (m_infinite_bullets.Value) {
+						__instance?.CurrentInstanceItemInventory?.gunHandler.ForceSetBulletCount(999);
+					}
 				} catch {}
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_PlayerCharacter_Update.Postfix ERROR - " + e);
@@ -296,7 +293,7 @@ public class SuperDavePlugin : BasePlugin {
 
 		private static void Postfix(ref bool __result) {
 			try {
-				if (m_enabled.Value && m_infinite_crab_traps.Value && m_crab_traps_unlocked) {
+				if (m_enabled.Value && m_infinite_crab_traps.Value && m_diving_vars.crab_traps_unlocked) {
 					__result = true;	
 				}
 			} catch (Exception e) {
@@ -310,7 +307,7 @@ public class SuperDavePlugin : BasePlugin {
 
 		private static void Postfix(ref bool __result) {
 			try {
-				if (m_enabled.Value && m_infinite_drones.Value && m_crab_traps_unlocked) {
+				if (m_enabled.Value && m_infinite_drones.Value && m_diving_vars.drones_unlocked) {
 					__result = true;
 				}
 			} catch (Exception e) {

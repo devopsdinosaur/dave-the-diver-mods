@@ -93,11 +93,11 @@ public class TestingPlugin : BasePlugin {
 
 		private static bool Prefix(LobbyPlayer __instance) {
 			try {
+				/*
 				if (!m_trigger_one_shot) {
 					return true;
 				}
 				m_trigger_one_shot = false;
-				///*
 				foreach (SpecDataBase item in Resources.FindObjectsOfTypeAll<SpecDataBase>()) {
 					_debug_log($"{item.Name}");
 					foreach (BuffDebuffEffectData buff in item.buffDatas) {
@@ -115,8 +115,23 @@ public class TestingPlugin : BasePlugin {
 				foreach (Il2CppSystem.Reflection.FieldInfo field in (new FishFarm.FishFarmPlayerView()).GetIl2CppType().GetFields((Il2CppSystem.Reflection.BindingFlags) 0xFFFFFFF)) {
 					_debug_log($"{field.Name} {field.FieldType}");
 				}
+				*/
+				///*
+				if (!m_trigger_one_shot) {
+					return true;
+				}
+				m_trigger_one_shot = false;
+				Il2CppSystem.Reflection.FieldInfo field = ReflectionUtils.il2cpp_get_field(ResourceManager.Instance, "_HarpoonSpecDataList");
+				_debug_log("1");
+				Il2CppSystem.Object obj = field.GetValue(ResourceManager.Instance);
+				_debug_log("2");
+				field = ReflectionUtils.il2cpp_get_field(obj, "_items");
+				_debug_log("3");
+				obj = field.GetValue(obj);
+				_debug_log("4");
+				Il2CppSystem.Collections
 				//*/
-				//Application.Quit();
+				Application.Quit();
 				return true;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_LobbyPlayer_FixedUpdate.Prefix ERROR - " + e);
@@ -125,14 +140,30 @@ public class TestingPlugin : BasePlugin {
 		}
 	}
 
-    [HarmonyPatch(typeof(TalkNPCPanel), "Init")]
-	class HarmonyPatch_TalkNPCPanel_Init {
+    [HarmonyPatch(typeof(CharacterController2D), "FixedUpdate")]
+	class HarmonyPatch_CharacterController2D_FixedUpdate {
 
-		private static void Postfix() {
+		private static void Postfix(CharacterController2D __instance) {
 			try {
-
+				if (!m_trigger_one_shot) {
+					return;
+				}
+				m_trigger_one_shot = false;
+				foreach (Il2CppSystem.Collections.Generic.KeyValuePair<EquipmentType, SpecDataBase> item in __instance.GetComponent<InstanceItemInventory>().currentEquipInInventory) {
+					_debug_log($"key: {item.Key}, name: {item.Value.Name}");
+				}
+				foreach (IntegratedItem item in DataManager.Instance.IntegratedItemDic.Values) {
+					if (item.specData == null) {
+						continue;
+					}
+					_debug_log($"id: {item.ID}, name: {item.specData.Name}");
+					if (item.ID == 3013133) {
+						__instance.GetComponent<InstanceItemInventory>().currentEquipInInventory[EquipmentType.Harpoon] = item.specData;
+					}
+				}
+				
 			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_TalkNPCPanel_Init.Postfix ERROR - " + e);
+				logger.LogError("** HarmonyPatch_CharacterController2D_FixedUpdate.Postfix ERROR - " + e);
 			}
 		}
 	}
@@ -174,7 +205,32 @@ public class TestingPlugin : BasePlugin {
 
 		private static void Postfix(PlayerCharacter __instance) {
 			try {
-				
+				/*
+				if (m_trigger_one_shot) {
+					m_trigger_one_shot = false;
+					_debug_log(__instance.harpoonHeadSpec.HarpoonHeadType);
+					_debug_log(__instance.harpoonHeadSpec.Damage);
+					_debug_log(__instance.harpoonHeadSpec.IsMaxLevel);
+					ReflectionUtils.il2cpp_get_field(__instance.harpoonSpec, "_harpoonItemType").SetValue(__instance.harpoonSpec, (int) HarpoonItemType.AlloyHarpoon);
+					ReflectionUtils.il2cpp_get_field(__instance.harpoonHeadSpec, "m_HarpoonHeadType").SetValue(__instance.harpoonHeadSpec, (int) HarpoonHeadItemType.FireHead);
+					ReflectionUtils.il2cpp_get_field(__instance.harpoonHeadSpec, "_Damage").SetValue(__instance.harpoonHeadSpec, 99);
+					//foreach (SpecDataBase spec in Resources.FindObjectsOfTypeAll<SpecDataBase>()) {
+					//	if (spec is HarpoonHeadSpecData) {
+					//		_debug_log($"name: {spec.Name}, element: {spec.elementType}, damage: {spec.Damage}, isDefault: {spec.IsDefaultItem}, isMaxLevel: {spec.IsMaxLevel}");
+					//	}
+					//}
+					if (false) {
+						foreach (Il2CppSystem.Reflection.FieldInfo field in __instance.CurrentInstanceItemInventory.harpoonHandler.GetIl2CppType().GetFields((Il2CppSystem.Reflection.BindingFlags) 0xFFFFFFF)) {
+							_debug_log($"name: {field.Name}, type: {field.FieldType}, val: " +
+								field.FieldType.ToString() switch {
+									"int" => "123123",
+									_ => "---"
+								}
+							);
+						}
+					}
+				}
+				*/
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_PlayerCharacter_Update.Postfix ERROR - " + e);
 			}
@@ -232,23 +288,6 @@ public class TestingPlugin : BasePlugin {
 			_debug_log($"HarmonyPatch_BaseInteractionCommand_SO_DownExecute");
 		}
 	}
-
-	/*
-	[HarmonyPatch(typeof(PlayerCharacter), "AvailableLiftDroneCount", MethodType.Getter)]
-	class HarmonyPatch_PlayerCharacter_AvailableLiftDroneCount {
-
-		private static bool Prefix(ref int __result) {
-			try {
-				_debug_log("AvailableLiftDroneCount!!!!!!!!!!!!!");
-				__result = 99;
-				return false;
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_PlayerCharacter_AvailableLiftDroneCount.Prefix ERROR - " + e);
-			}
-			return true;
-		}
-	}
-	*/
 
 	/*
 	[HarmonyPatch(typeof(), "")]
