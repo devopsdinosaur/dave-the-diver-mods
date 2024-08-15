@@ -7,7 +7,36 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using BepInEx.Unity.IL2CPP;
+using BepInEx.Configuration;
 using System.Runtime.InteropServices;
+
+public abstract class DDPlugin : BasePlugin {
+    protected Dictionary<string, string> plugin_info = null;
+    protected static ManualLogSource logger;
+
+    protected void create_nexus_page() {
+        if (plugin_info == null) {
+            logger.LogWarning("* create_nexus_page WARNING - plugin_info dict must be initialized before calling this method.");
+            return;
+        }
+        string nexus_dir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "nexus", this.plugin_info["guid"]));
+        string template_path = Path.Combine(nexus_dir, "template.txt");
+        string output_path = Path.Combine(nexus_dir, "generated.txt");
+        if (!File.Exists(template_path)) {
+            return;
+        }
+        string template_data = File.ReadAllText(template_path);
+        List<string> configs = new List<string>();
+        foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> kvp in this.Config.ToArray()) {
+            
+        }
+        foreach (KeyValuePair<string, string> kvp in this.plugin_info) {
+            template_data = template_data.Replace("[[" + kvp.Key + "]]", kvp.Value);
+        }
+        File.WriteAllText(output_path, template_data);
+        Application.Quit();
+    }
+}
 
 public static class UnityUtils {
 

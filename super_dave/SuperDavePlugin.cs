@@ -3,11 +3,14 @@ using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
 using System;
+using System.IO;
+using System.Reflection;
 using System.Collections.Generic;
 using BepInEx.Unity.IL2CPP;
 using DR;
 using SushiBar.Customer;
 using UnityEngine;
+using TMPro;
 using Common.Contents;
 using System.Runtime.InteropServices;
 
@@ -15,19 +18,29 @@ public static class PluginInfo {
 
     public const string TITLE = "Super Dave";
     public const string NAME = "super_dave";
+	public const string SHORT_DESCRIPTION = "Lots of little improvements to make the game easier to play (and lots more to come)!";
 
     public const string VERSION = "0.0.7";
 
     public const string AUTHOR = "devopsdinosaur";
+	public const string GAME_TITLE = "Dave the Diver";
     public const string GAME = "davethediver";
     public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+	public const string REPO = "dave-the-diver-mods";
+
+	public static Dictionary<string, string> to_dict() {
+		Dictionary<string, string> info = new Dictionary<string, string>();
+		foreach (FieldInfo field in typeof(PluginInfo).GetFields((BindingFlags) 0xFFFFFFF)) {
+			info[field.Name.ToLower()] = (string) field.GetValue(null);
+		}
+		return info;
+	}
 }
 
 [BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
-public class SuperDavePlugin : BasePlugin {
+public class SuperDavePlugin : DDPlugin {
 
 	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
-	public static ManualLogSource logger;
 	private static ConfigEntry<bool> m_enabled;
 
 	// Boat
@@ -45,9 +58,9 @@ public class SuperDavePlugin : BasePlugin {
 	private static ConfigEntry<bool> m_infinite_crab_traps;
 	private static ConfigEntry<bool> m_infinite_drones;
 	private static ConfigEntry<bool> m_large_pickups;
-	private static ConfigEntry<string> m_harpoon_type;
-	private static ConfigEntry<string> m_harpoon_head_type;
-	public static ConfigEntry<int> m_harpoon_head_level;
+	//private static ConfigEntry<string> m_harpoon_type;
+	//private static ConfigEntry<string> m_harpoon_head_type;
+	//public static ConfigEntry<int> m_harpoon_head_level;
 
 	// Farm
 	private static ConfigEntry<float> m_farm_walk_multiplier;
@@ -63,12 +76,58 @@ public class SuperDavePlugin : BasePlugin {
 	private static ConfigEntry<float> m_staff_walk_multiplier;
 	private static ConfigEntry<bool> m_infinite_wasabi;
 
+	// Hotkeys
+	private static ConfigEntry<string> m_hotkey_modifier;
+	private static ConfigEntry<string> m_hotkey_toggle_aura_on;
+	private static ConfigEntry<string> m_hotkey_change_aura_type;
+
+	private const int HOTKEY_MODIFIER = 0;
+	private const int HOTKEY_AURA_ON = 1;
+	private const int HOTKEY_AURA_TYPE = 2;
+	private static Dictionary<int, List<KeyCode>> m_hotkeys = null;
+
 	class DivingVars {
+		private static DivingVars m_instance = null;
+		public static DivingVars Instance {
+			get {
+				if (m_instance == null) {
+					m_instance = new DivingVars();
+				}
+				return m_instance;
+			}
+		}
+		public bool toxic_aura_enabled_by_hotkey = true;
+		public bool toxic_aura_sleep_by_hotkey = true;
 		public bool crab_traps_unlocked = false;
 		public bool drones_unlocked = false;
 		public Dictionary<HarpoonHeadItemType, List<HarpoonHeadSpecData>> harpoon_heads = new Dictionary<HarpoonHeadItemType, List<HarpoonHeadSpecData>>();
 		public Dictionary<HarpoonItemType, HarpoonSpecData> harpoon_specs = new Dictionary<HarpoonItemType, HarpoonSpecData>();
 		
+		private DivingVars() {
+			this.toxic_aura_enabled_by_hotkey = m_toxic_aura_enabled.Value;
+			this.toxic_aura_sleep_by_hotkey = m_toxic_aura_sleep.Value;
+			foreach (HarpoonSpecData spec in Resources.FindObjectsOfTypeAll<HarpoonSpecData>()) {
+				//_debug_log($"{spec.Name}");
+				this.harpoon_specs[spec.HarpoonType] = spec;
+			}
+			foreach (HarpoonHeadSpecData spec in Resources.FindObjectsOfTypeAll<HarpoonHeadSpecData>()) {
+				HarpoonHeadItemType head_type = (HarpoonHeadItemType) ReflectionUtils.il2cpp_get_field_value<int>(spec, "m_HarpoonHeadType");
+				if (!this.harpoon_heads.ContainsKey(head_type)) {
+					this.harpoon_heads[head_type] = new List<HarpoonHeadSpecData>();
+				}
+				//_debug_log($"{head_type} {spec.Damage}");
+				this.harpoon_heads[head_type].Add(spec);
+			}
+			foreach (List<HarpoonHeadSpecData> specs in this.harpoon_heads.Values) {
+				specs.Sort((x, y) => x.Damage.CompareTo(y.Damage));
+			}
+		}
+
+		public void initialize() {
+
+		}
+
+		/*
 		public void set_harpoon_item(InstanceItemInventory inventory) {
 			HarpoonItemType type;
 			if (string.IsNullOrEmpty(m_harpoon_type.Value)) {
@@ -79,8 +138,7 @@ public class SuperDavePlugin : BasePlugin {
 				return;
 			}
 			inventory.currentEquipInInventory[EquipmentType.Harpoon] = this.harpoon_specs[type];
-			inventory.EnableEquipItem(EquipmentType.Harpoon);
-			_debug_log($"{inventory.currentEquipInInventory[EquipmentType.Harpoon].Name}");
+			_debug_log($"{inventory.GetEquipedItem(EquipmentType.Harpoon).Name}");
 		}
 
 		public void set_harpoon_head(InstanceItemInventory inventory) {
@@ -94,11 +152,10 @@ public class SuperDavePlugin : BasePlugin {
 			}
 			int level = m_harpoon_head_level.Value;
 			inventory.currentEquipInInventory[EquipmentType.HarpoonHead] = harpoon_heads[type][(level < 0 ? 0 : (level > harpoon_heads[type].Count - 1 ? harpoon_heads[type].Count - 1 : level))];
-			inventory.EnableEquipItem(EquipmentType.HarpoonHead);
-			_debug_log($"{inventory.currentEquipInInventory[EquipmentType.HarpoonHead].Name} {inventory.currentEquipInInventory[EquipmentType.HarpoonHead].Damage}");
+			_debug_log($"{inventory.GetEquipedItem(EquipmentType.HarpoonHead).Name}");
 		}
+		*/
 	}
-	private static DivingVars m_diving_vars = null;
 
 	public ConfigEntry<T> migrate_option<T>(string section, string old_key, string key, T val, string description) {
 		ConfigEntry<T> new_opt = this.Config.Bind<T>(section, key, val, description);
@@ -123,9 +180,9 @@ public class SuperDavePlugin : BasePlugin {
 			m_fish_farm_walk_multiplier = this.Config.Bind<float>("Fish Farm", "Fish Farm - Walk Multiplier", 0f, "Multiplier applied to Dave when walking/sprinting on the fish farm (float, default 0f [ < 1 == faster, < 1 == slower, set to 0 to disable]).");
 
 			// Diving
-			m_harpoon_type = this.Config.Bind<string>("Diving", "Diving - Harpoon Type", "", "Harpoon type (one of: Old, Iron, Pump, Merman, NewMV, Alloy) [case sensitive, set to blank to disable].");
-			m_harpoon_head_type = this.Config.Bind<string>("Diving", "Diving - Harpoon Head Type", "", "Harpoon head type (one of: Normal, Electric, Poison, Chain, Sleep, Paralysis, Strong, Fire, Ice) [case sensitive, set to blank to disable].");
-			m_harpoon_head_level = this.Config.Bind<int>("Diving", "Diving - Harpoon Head Level", 0, "Harpoon head level [ignored if Harpoon Head Type is not set] (int, 1 (weakest) - 5 (strongest)).");
+			//m_harpoon_type = this.Config.Bind<string>("Diving", "Diving - Harpoon Type", "", "Harpoon type (one of: Old, Iron, Pump, Merman, NewMV, Alloy) [case sensitive, set to blank to disable].");
+			//m_harpoon_head_type = this.Config.Bind<string>("Diving", "Diving - Harpoon Head Type", "", "Harpoon head type (one of: Normal, Electric, Poison, Chain, Sleep, Paralysis, Strong, Fire, Ice) [case sensitive, set to blank to disable].");
+			//m_harpoon_head_level = this.Config.Bind<int>("Diving", "Diving - Harpoon Head Level", 0, "Harpoon head level [ignored if Harpoon Head Type is not set] (int, 1 (weakest) - 5 (strongest)).");			
 			m_infinite_bullets = this.migrate_option<bool>("Diving", "Infinite Bullets", "Diving - Infinite Bullets", false, "Set to true to have infinite bullets when diving.");
 			m_infinite_crab_traps = this.Config.Bind<bool>("Diving", "Diving - Infinite Crab Traps", false, "Set to true to enable infinite crab traps.");
 			m_infinite_drones = this.Config.Bind<bool>("Diving", "Diving - Infinite Drones", false, "Set to true to enable infinite salvage drones.");
@@ -138,6 +195,11 @@ public class SuperDavePlugin : BasePlugin {
 			m_aura_radius = this.migrate_option<float>("Diving", "Toxic Aura: Radius", "Diving - Toxic Aura: Radius", 3.0f, "Radius (in meters?) around the character in which fish will be insta-killed, if Toxic Aura is enabled (float, default 3.0f).");
 			m_weightless_items = this.migrate_option<bool>("Diving", "Weightless Items (Infinite Carry Weight)", "Diving - Weightless Items (Infinite Carry Weight)", false, "Set to true to have reduce the weight of all items to 0, effectively giving infinite carry weight and inventory space.");
 
+			// Hotkeys
+			m_hotkey_modifier = this.Config.Bind<string>("Hotkeys", "Hotkey - Modifier", "LeftControl,RightControl", "Comma-separated list of Unity Keycodes used as the special modifier key (i.e. ctrl,alt,command) one of which is required to be down for hotkeys to work.  Set to '' (blank string) to not require a special key (not recommended).  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
+			m_hotkey_toggle_aura_on = this.Config.Bind<string>("Hotkeys", "Hotkey - Toggle Toxic Aura On/Off", "Backspace", "Comma-separated list of Unity Keycodes, any of which will toggle the toxic aura on/off (if enabled).  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
+			m_hotkey_change_aura_type = this.Config.Bind<string>("Hotkeys", "Hotkey - Change Toxic Aura Mode", "Backslash", "Comma-separated list of Unity Keycodes, any of which will change the toxic aura mode (if enabled) between Kill/Sleep.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
+			
 			// Sushi Bar
 			m_staff_cook_multiplier = this.Config.Bind<float>("Sushi", "Sushi - Cook Multiplier", 0f, "Multiplier applied to sushi bar staff cooking speed (float, default 0f [ < 1 == faster, < 1 == slower, set to 0 to disable]).");
 			m_infinite_customer_patience = this.migrate_option<bool>("Sushi", "Infinite Customer Patience", "Sushi - Infinite Customer Patience", false, "Set to true to make customers never storm off if the food/drinks are too slow.");
@@ -146,7 +208,18 @@ public class SuperDavePlugin : BasePlugin {
 			m_sushi_speed_boost = this.migrate_option<float>("Sushi", "Sushi Speed Boost", "Sushi - Speed Boost", 0f, "Permanent speed boost when working in sushi bar (float, default 0f [set to 0 to disable]).");
 			m_staff_walk_multiplier = this.Config.Bind<float>("Sushi", "Sushi - Walk Multiplier", 0f, "Multiplier applied to sushi bar staff walking speed [note: this also affects Dave on top of 'Sushi - Speed Boost'] (float, default 0f [ < 1 == faster, < 1 == slower, set to 0 to disable]).");
 
+			this.plugin_info = PluginInfo.to_dict();
+			this.create_nexus_page();
+
+			m_hotkeys = new Dictionary<int, List<KeyCode>>();
+			set_hotkey(m_hotkey_modifier.Value, HOTKEY_MODIFIER);
+			set_hotkey(m_hotkey_toggle_aura_on.Value, HOTKEY_AURA_ON);
+			set_hotkey(m_hotkey_change_aura_type.Value, HOTKEY_AURA_TYPE);
+
 			this.m_harmony.PatchAll();
+			PluginUpdater.create(this, logger);
+			PluginUpdater.Instance.register("global", 1.0f, global_update);
+			PluginUpdater.Instance.register("keypress", 0f, keypress_update);
 			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
@@ -155,6 +228,57 @@ public class SuperDavePlugin : BasePlugin {
 
 	private static void _debug_log(object text) {
 		logger.LogInfo(text);
+	}
+
+	private static void set_hotkey(string keys_string, int key_index) {
+		m_hotkeys[key_index] = new List<KeyCode>();
+		foreach (string key in keys_string.Split(',')) {
+			string trimmed_key = key.Trim();
+			if (trimmed_key != "") {
+				m_hotkeys[key_index].Add((KeyCode) System.Enum.Parse(typeof(KeyCode), trimmed_key));
+			}
+		}
+	}
+
+	private static bool is_modifier_hotkey_down() {
+		if (m_hotkeys[HOTKEY_MODIFIER].Count == 0) {
+			return true;
+		}
+		foreach (KeyCode key in m_hotkeys[HOTKEY_MODIFIER]) {
+			if (Input.GetKey(key)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static bool is_hotkey_down(int key_index) {
+		foreach (KeyCode key in m_hotkeys[key_index]) {
+			if (Input.GetKeyDown(key)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static void global_update() {
+
+	}
+
+	private static void keypress_update() {
+		if (!is_modifier_hotkey_down()) {
+			return;
+		}
+		if (is_hotkey_down(HOTKEY_AURA_ON)) {
+			if (DivingVars.Instance != null) {
+				DivingVars.Instance.toxic_aura_enabled_by_hotkey = !DivingVars.Instance.toxic_aura_enabled_by_hotkey;
+			}
+		}
+		if (is_hotkey_down(HOTKEY_AURA_TYPE)) {
+			if (DivingVars.Instance != null) {
+				DivingVars.Instance.toxic_aura_sleep_by_hotkey = !DivingVars.Instance.toxic_aura_sleep_by_hotkey;
+			}
+		}
 	}
 
 	// ================================================================================
@@ -171,39 +295,11 @@ public class SuperDavePlugin : BasePlugin {
 				if (!m_enabled.Value) {
 					return;
 				}
-				if (m_diving_vars == null) {
-					m_diving_vars = new DivingVars();
-					/*
-					foreach (IntegratedItem item in DataManager.Instance.IntegratedItemDic.Values) {
-						if (item.specData == null) {
-							continue;
-						}
-						if (item.specData.Name.Contains("Harpoon")) {
-							_debug_log($"id: {item.ID}, name: {item.specData.Name}");
-							m_diving_vars.harpoon_items[((HarpoonSpecData) item.specData).HarpoonType] = item;
-						}
-					}
-					*/
-					foreach (HarpoonSpecData spec in Resources.FindObjectsOfTypeAll<HarpoonSpecData>()) {
-						//_debug_log($"{spec.Name}");
-						m_diving_vars.harpoon_specs[spec.HarpoonType] = spec;
-					}
-					foreach (HarpoonHeadSpecData spec in Resources.FindObjectsOfTypeAll<HarpoonHeadSpecData>()) {
-						HarpoonHeadItemType head_type = (HarpoonHeadItemType) ReflectionUtils.il2cpp_get_field_value<int>(spec, "m_HarpoonHeadType");
-						if (!m_diving_vars.harpoon_heads.ContainsKey(head_type)) {
-							m_diving_vars.harpoon_heads[head_type] = new List<HarpoonHeadSpecData>();
-						}
-						//_debug_log($"{head_type} {spec.Damage}");
-						m_diving_vars.harpoon_heads[head_type].Add(spec);
-					}
-					foreach (List<HarpoonHeadSpecData> specs in m_diving_vars.harpoon_heads.Values) {
-						specs.Sort((x, y) => x.Damage.CompareTo(y.Damage));
-					}
-				}
+				DivingVars.Instance.initialize();
 				if (m_modified_instance_hash != __instance.GetHashCode() && m_boat_walk_speed_boost.Value > 0) {
 					m_modified_instance_hash = __instance.GetHashCode();
 					ReflectionUtils.il2cpp_get_field(__instance, "m_MoveSpeed").SetValue(
-						__instance, 
+						__instance,
 						ReflectionUtils.il2cpp_get_field_value<float>(__instance, "m_MoveSpeed") + m_boat_walk_speed_boost.Value
 					);
 				}
@@ -276,21 +372,21 @@ public class SuperDavePlugin : BasePlugin {
 					return;
 				}
 				m_elapsed = 0f;
-				if (m_diving_vars != null) {
+				if (DivingVars.Instance != null) {
 					if (m_modified_instance_hash != __instance.GetHashCode()) {
 						m_modified_instance_hash = __instance.GetHashCode();
 						InstanceItemInventory inventory = __instance.GetComponent<InstanceItemInventory>();
-						m_diving_vars.set_harpoon_item(inventory);
-						m_diving_vars.set_harpoon_head(inventory);
+						//DivingVars.Instance.set_harpoon_item(inventory);
+						//DivingVars.Instance.set_harpoon_head(inventory);
 					}
 				}
-				if (m_toxic_aura_enabled.Value) {
+				if (m_toxic_aura_enabled.Value && DivingVars.Instance.toxic_aura_enabled_by_hotkey) {
 					foreach (FishInteractionBody fish in Resources.FindObjectsOfTypeAll<FishInteractionBody>()) {
 						if (fish.InteractionType == FishInteractionBody.FishInteractionType.Calldrone && m_large_pickups.Value) {
 							fish.InteractionType = FishInteractionBody.FishInteractionType.Pickup;
 						}
 						if (Vector3.Distance(__instance.transform.position, fish.transform.position) <= m_aura_radius.Value) {
-							if (m_toxic_aura_sleep.Value) {
+							if (m_toxic_aura_sleep.Value && DivingVars.Instance.toxic_aura_sleep_by_hotkey) {
 								if (!m_did_set_sleep_buff_value) {
 									DataManager.Instance.BuffEffectDataDic[SLEEP_BUFF_ID].buffvalue1 = SLEEP_BUFF_VALUE;
 									DataManager.Instance.BuffEffectDataDic[SLEEP_BUFF_ID].buffvalue2 = SLEEP_BUFF_VALUE;
@@ -334,10 +430,10 @@ public class SuperDavePlugin : BasePlugin {
 				if (!m_enabled.Value || (m_elapsed += Time.deltaTime) < UPDATE_FREQUENCY) {
 					return;
 				}
-				if (m_diving_vars != null && m_modified_instance_hash != __instance.GetHashCode()) {
+				if (DivingVars.Instance != null && m_modified_instance_hash != __instance.GetHashCode()) {
 					m_modified_instance_hash = __instance.GetHashCode();
-					m_diving_vars.drones_unlocked = __instance.AvailableLiftDroneCount > 0;
-					m_diving_vars.crab_traps_unlocked = __instance.AvailableCrabTrapCount > 0;
+					DivingVars.Instance.drones_unlocked = __instance.AvailableLiftDroneCount > 0;
+					DivingVars.Instance.crab_traps_unlocked = __instance.AvailableCrabTrapCount > 0;
 				}
 				try {
 					if (m_infinite_bullets.Value) {
@@ -371,7 +467,7 @@ public class SuperDavePlugin : BasePlugin {
 
 		private static void Postfix(ref bool __result) {
 			try {
-				if (m_enabled.Value && m_infinite_crab_traps.Value && m_diving_vars.crab_traps_unlocked) {
+				if (m_enabled.Value && m_infinite_crab_traps.Value && DivingVars.Instance.crab_traps_unlocked) {
 					__result = true;	
 				}
 			} catch (Exception e) {
@@ -385,7 +481,7 @@ public class SuperDavePlugin : BasePlugin {
 
 		private static void Postfix(ref bool __result) {
 			try {
-				if (m_enabled.Value && m_infinite_drones.Value && m_diving_vars.drones_unlocked) {
+				if (m_enabled.Value && m_infinite_drones.Value && DivingVars.Instance.drones_unlocked) {
 					__result = true;
 				}
 			} catch (Exception e) {

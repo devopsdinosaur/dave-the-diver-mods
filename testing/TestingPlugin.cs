@@ -18,6 +18,7 @@ using System.IO;
 using Common.Contents;
 using SushiBar.Customer;
 using System.Runtime.InteropServices;
+using TMPro;
 
 [BepInPlugin("devopsdinosaur.davethediver.testing", "Testing", "0.0.1")]
 public class TestingPlugin : BasePlugin {
@@ -31,9 +32,11 @@ public class TestingPlugin : BasePlugin {
 		try {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 			this.m_harmony.PatchAll();
+			/*
 			PluginUpdater.create(this, logger);
 			PluginUpdater.Instance.register("global", 1.0f, global_update);
 			PluginUpdater.Instance.register("keypress", 0f, keypress_update);
+			*/
 			logger.LogInfo("devopsdinosaur.davethediver.testing v0.0.1 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
@@ -195,7 +198,17 @@ public class TestingPlugin : BasePlugin {
 						__instance.GetComponent<InstanceItemInventory>().currentEquipInInventory[EquipmentType.Harpoon] = item.specData;
 					}
 				}
-				
+				GameObject template = null;
+				foreach (TextMeshProUGUI tmp in Resources.FindObjectsOfTypeAll<TextMeshProUGUI>()) {
+					if (tmp.gameObject.name == "GoldText") {
+						template = tmp.gameObject;
+						break;
+					}
+				}
+				GameObject obj = GameObject.Instantiate<GameObject>(template, template.transform.parent);
+				RectTransform rect_transform = obj.GetComponent<RectTransform>();
+				obj.transform.localPosition += Vector3.down * 10;
+				obj.SetActive(true);
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_CharacterController2D_FixedUpdate.Postfix ERROR - " + e);
 			}
