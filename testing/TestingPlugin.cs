@@ -116,22 +116,56 @@ public class TestingPlugin : BasePlugin {
 					_debug_log($"{field.Name} {field.FieldType}");
 				}
 				*/
-				///*
+				/*
 				if (!m_trigger_one_shot) {
 					return true;
 				}
 				m_trigger_one_shot = false;
+				
+				Dictionary<HarpoonHeadItemType, List<HarpoonHeadSpecData>> harpoon_heads = new Dictionary<HarpoonHeadItemType, List<HarpoonHeadSpecData>>();
+				foreach (HarpoonHeadSpecData spec in Resources.FindObjectsOfTypeAll<HarpoonHeadSpecData>()) {
+					HarpoonHeadItemType head_type = (HarpoonHeadItemType) ReflectionUtils.il2cpp_get_field_value<int>(spec, "m_HarpoonHeadType");
+					if (!harpoon_heads.ContainsKey(head_type)) {
+						harpoon_heads[head_type] = new List<HarpoonHeadSpecData>();
+					}
+					harpoon_heads[head_type].Add(spec);
+					//_debug_log($"{spec.TID} {spec.Name} {spec.Damage} {spec.IsMaxLevel} {head_type}");
+				}
+				foreach (List<HarpoonHeadSpecData> specs in harpoon_heads.Values) {
+					specs.Sort((x, y) => x.Damage.CompareTo(y.Damage));
+				}
+				foreach (HarpoonHeadItemType type in harpoon_heads.Keys) {
+					_debug_log(type);
+					foreach (HarpoonHeadSpecData spec in harpoon_heads[type]) {
+						_debug_log($"id: {spec.TID}, damage: {spec.Damage}");
+					}
+				}
+				*/
+				/*
 				Il2CppSystem.Reflection.FieldInfo field = ReflectionUtils.il2cpp_get_field(ResourceManager.Instance, "_HarpoonSpecDataList");
 				_debug_log("1");
 				Il2CppSystem.Object obj = field.GetValue(ResourceManager.Instance);
 				_debug_log("2");
+				int size = ReflectionUtils.il2cpp_get_field_value<int>(obj, "_size");
+				_debug_log($"size: {size}");
 				field = ReflectionUtils.il2cpp_get_field(obj, "_items");
 				_debug_log("3");
 				obj = field.GetValue(obj);
 				_debug_log("4");
-				Il2CppSystem.Collections
+
+				Il2CppSystem.Collections.Generic.List<int> things = new Il2CppSystem.Collections.Generic.List<int>();
+				FieldInfo info = things.GetType().GetField("NativeFieldInfoPtr__items", (BindingFlags) 0xFFFFFFF);
+				_debug_log(info.Name);
+				System.IntPtr NativeFieldInfoPtr__items = (System.IntPtr) info.GetValue(things);
+				_debug_log(NativeFieldInfoPtr__items);
+				System.IntPtr num = Il2CppInterop.Runtime.IL2CPP.Il2CppObjectBaseToPtrNotNull(things);
+				Il2CppInterop.Runtime.IL2CPP.il2cpp_gc_wbarrier_set_field(num, (nint) num + (int) Il2CppInterop.Runtime.IL2CPP.il2cpp_field_get_offset(NativeFieldInfoPtr__items), Il2CppInterop.Runtime.IL2CPP.Il2CppObjectBaseToPtr(obj));
+				things._size = size;
+				foreach (int i in things) {
+					_debug_log(i);
+				}
 				//*/
-				Application.Quit();
+				//Application.Quit();
 				return true;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_LobbyPlayer_FixedUpdate.Prefix ERROR - " + e);
