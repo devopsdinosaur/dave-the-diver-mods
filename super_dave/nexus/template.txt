@@ -1,6 +1,6 @@
-﻿[u]=================[/u]
-[u]== Description ==[/u]
-[u]=================[/u]
+﻿=================
+== Description ==
+=================
 
 Current Version: [[version]] ([url=https://github.com/[[author]]/[[repo]]/blob/master/[[name]]/changelog.md]changelog[/url])
 
@@ -8,15 +8,15 @@ Current Version: [[version]] ([url=https://github.com/[[author]]/[[repo]]/blob/m
 
 See the config options below for a complete list of features and how to use them.
 
-[u]====================[/u]
-[u]== Config Options ==[/u]
-[u]====================[/u]
+====================
+== Config Options ==
+====================
 
 For information on how to modify these options, see the [i]Editing the Config File[/i] section below.
 
 [[config_options]]
 
-[u]=============================[/u]
-[u]== Editing the Config File ==[/u]
-[u]=============================[/u]
+=============================
+== Editing the Config File ==
+=============================
 

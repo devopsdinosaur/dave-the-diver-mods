@@ -26,10 +26,33 @@ public abstract class DDPlugin : BasePlugin {
             return;
         }
         string template_data = File.ReadAllText(template_path);
-        List<string> configs = new List<string>();
+        Dictionary<string, List<string[]>> categories = new Dictionary<string, List<string[]>>();
         foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> kvp in this.Config.ToArray()) {
-            
+            if (!categories.Keys.Contains(kvp.Key.Section)) {
+                categories[kvp.Key.Section] = new List<string[]>();
+            }
+            categories[kvp.Key.Section].Add(new string[] {
+                kvp.Key.Key,
+                //$"[tr][td]{kvp.Key.Section}[/td][td]{kvp.Key.Key}[/td][td]{kvp.Value.SettingType}[/td][td]{kvp.Value.DefaultValue}[/td][td]{kvp.Value.Description}[/td][/tr]"
+                $"[*][b][i]{kvp.Key.Key}[/i][/b]"
+            });
         }
+        List<string> ordered_categories = new List<string>(categories.Keys);
+        ordered_categories.Sort();
+        foreach (List<string[]> items in categories.Values) {
+            items.Sort((x, y) => x[0].CompareTo(y[0]));
+        }
+        string lines = "";
+        foreach (string category in ordered_categories) {
+            //lines += "[table]\n[tr][th][b]Section[/b][/th][th][b]Name[/b][/th][th][b]Type[/b][/th][th][b]Default Value[/b][/th][th][b]Description[/b][/th][/tr]\n";
+            lines += $"[b][size=3]{category}[/size][/b]\n\n[list]\n";
+            foreach (string[] option in categories[category]) {
+                lines += option[1] + "\n";
+            }
+            //lines += "[/table]\n";
+            lines += "[/list]\n";
+        }
+        this.plugin_info["config_options"] = lines;
         foreach (KeyValuePair<string, string> kvp in this.plugin_info) {
             template_data = template_data.Replace("[[" + kvp.Key + "]]", kvp.Value);
         }
