@@ -33,8 +33,7 @@ public abstract class DDPlugin : BasePlugin {
             }
             categories[kvp.Key.Section].Add(new string[] {
                 kvp.Key.Key,
-                //$"[tr][td]{kvp.Key.Section}[/td][td]{kvp.Key.Key}[/td][td]{kvp.Value.SettingType}[/td][td]{kvp.Value.DefaultValue}[/td][td]{kvp.Value.Description}[/td][/tr]"
-                $"[*][b][i]{kvp.Key.Key}[/i][/b]"
+                $"[*][b][i]{kvp.Key.Key}[/i][/b] - {kvp.Value.Description.Description}"
             });
         }
         List<string> ordered_categories = new List<string>(categories.Keys);
@@ -44,12 +43,10 @@ public abstract class DDPlugin : BasePlugin {
         }
         string lines = "";
         foreach (string category in ordered_categories) {
-            //lines += "[table]\n[tr][th][b]Section[/b][/th][th][b]Name[/b][/th][th][b]Type[/b][/th][th][b]Default Value[/b][/th][th][b]Description[/b][/th][/tr]\n";
             lines += $"[b][size=3]{category}[/size][/b]\n\n[list]\n";
             foreach (string[] option in categories[category]) {
                 lines += option[1] + "\n";
             }
-            //lines += "[/table]\n";
             lines += "[/list]\n";
         }
         this.plugin_info["config_options"] = lines;
