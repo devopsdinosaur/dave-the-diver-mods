@@ -1,4 +1,22 @@
-﻿# 0.0.7
+﻿# 0.0.8
+
+## Features
+- Added auto-pickup for fish and most ground items (including pots [chests coming soon]).
+
+## Bug Fixes
+- Infinite drones now working as expected.
+- Infinite crab traps option now auto-places traps on rocks.
+
+## Known Issues
+- Toxic Aura will hit ally fish (ex. baby whale).  Currently need to temporarily disable the aura (default: Ctrl+Backspace) when getting near the fish.
+
+## In Progress
+- Allow toxic aura to differentiate between ally and non-ally fish.
+- Add auto-pickup of chests and hittables (ore/seaweed/etc).
+- Ability to set all equipment to anything when starting dive.
+
+
+# 0.0.7
 
 ## Features
 - Added infinite crab traps option.

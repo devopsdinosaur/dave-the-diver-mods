@@ -13,6 +13,7 @@ using UnityEngine;
 using TMPro;
 using Common.Contents;
 using System.Runtime.InteropServices;
+using DR.Save;
 
 public static class PluginInfo {
 
@@ -20,7 +21,7 @@ public static class PluginInfo {
     public const string NAME = "super_dave";
 	public const string SHORT_DESCRIPTION = "Lots of little improvements to make the game easier to play (and lots more to come)!";
 
-    public const string VERSION = "0.0.7";
+    public const string VERSION = "0.0.8";
 
     public const string AUTHOR = "devopsdinosaur";
 	public const string GAME_TITLE = "Dave the Diver";
@@ -47,6 +48,9 @@ public class SuperDavePlugin : DDPlugin {
 	private static ConfigEntry<float> m_boat_walk_speed_boost;
 
 	// Diving
+	private static ConfigEntry<float> m_auto_pickup_radius;
+	private static ConfigEntry<bool> m_auto_pickup_fish;
+	private static ConfigEntry<bool> m_auto_pickup_items;
 	private static ConfigEntry<bool> m_infinite_oxygen;
 	private static ConfigEntry<bool> m_invincible;
 	private static ConfigEntry<bool> m_toxic_aura_enabled;
@@ -180,6 +184,9 @@ public class SuperDavePlugin : DDPlugin {
 			m_fish_farm_walk_multiplier = this.Config.Bind<float>("Fish Farm", "Fish Farm - Walk Multiplier", 0f, "Multiplier applied to Dave when walking/sprinting on the fish farm (float, default 0f [ < 1 == faster, < 1 == slower, set to 0 to disable]).");
 
 			// Diving
+			m_auto_pickup_fish = this.Config.Bind<bool>("Diving", "Diving - Auto-pickup: Fish", false, "Set to true to enable auto pickup of sleeping/netted fish (NOTE: This will disable the Large Pickups option to prevent drone glitches; just be sure to enable Infinite Drones when using this one).");
+			m_auto_pickup_items = this.Config.Bind<bool>("Diving", "Diving - Auto-pickup: Items", false, "Set to true to enable auto pickup of items (wood, pots, etc).");
+			m_auto_pickup_radius = this.Config.Bind<float>("Diving", "Diving - Auto-pickup: Radius", 3.0f, "Radius (in meters?) around the character in which objects will be automatically picked up based on enabled pickup settings (float, default 3.0f).");
 			//m_harpoon_type = this.Config.Bind<string>("Diving", "Diving - Harpoon Type", "", "Harpoon type (one of: Old, Iron, Pump, Merman, NewMV, Alloy) [case sensitive, set to blank to disable].");
 			//m_harpoon_head_type = this.Config.Bind<string>("Diving", "Diving - Harpoon Head Type", "", "Harpoon head type (one of: Normal, Electric, Poison, Chain, Sleep, Paralysis, Strong, Fire, Ice) [case sensitive, set to blank to disable].");
 			//m_harpoon_head_level = this.Config.Bind<int>("Diving", "Diving - Harpoon Head Level", 0, "Harpoon head level [ignored if Harpoon Head Type is not set] (int, 1 (weakest) - 5 (strongest)).");			
@@ -365,16 +372,60 @@ public class SuperDavePlugin : DDPlugin {
 		private const float SLEEP_BUFF_VALUE = 9999999999f;
 		private static bool m_did_set_sleep_buff_value = false;
 		private static int m_modified_instance_hash = 0;
+		private static PlayerCharacter m_player = null;
+		private static List<GameObject> m_next_frame_destroy_objects = new List<GameObject>();
+		
+		private static void auto_pickup<T>(bool enabled, Vector3 player_pos) where T : MonoBehaviour {
+			if (!enabled) {
+				return;
+			}
+			foreach (T item in Resources.FindObjectsOfTypeAll<T>()) {
+				if (Vector3.Distance(player_pos, item.transform.position) > m_auto_pickup_radius.Value || m_next_frame_destroy_objects.Contains(item.gameObject)) {
+					continue;
+				}
+				if (item is FishInteractionBody fish) {
+					if (fish.CheckAvailableInteraction(m_player) && fish.InteractionType == FishInteractionBody.FishInteractionType.Pickup) {
+						fish.SuccessInteract(m_player);
+						m_next_frame_destroy_objects.Add(fish.gameObject);
+					}
+				} else if (item is PickupInstanceItem pickup) {
+					if (pickup.CheckAvailableInteraction(m_player)) {
+						pickup.SuccessInteract(m_player);
+						m_next_frame_destroy_objects.Add(pickup.gameObject);
+					}
+				} else if (item is InstanceItemChest chest && chest.gameObject.name.Contains("IngredientPot")) {
+					chest.SuccessInteract(m_player);
+					m_next_frame_destroy_objects.Add(chest.gameObject);
+				} else if (item is BreakableLootObject breakable) {
+					breakable.OnTakeDamage(new AttackData() {
+						damage = 99999,
+						attackType = AttackType.Player_Melee
+					}, new DefenseData() {
+					});
+					if (breakable.IsDead()) {
+						m_next_frame_destroy_objects.Add(breakable.gameObject);
+					}
+				} else if (item is CrabTrapZone crab_trap_zone && !item.transform.Find("CrabTrap(Clone)")) {
+					if (crab_trap_zone.CheckAvailableInteraction(m_player)) {
+						crab_trap_zone.SetUpCrabTrap(99);
+					}
+				}
+			}
+		}
 
 		private static void Postfix(CharacterController2D __instance) {
 			try {
 				if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < UPDATE_FREQUENCY) {
 					return;
 				}
+				foreach (GameObject obj in m_next_frame_destroy_objects) {
+					GameObject.Destroy(obj);
+				}
 				m_elapsed = 0f;
 				if (DivingVars.Instance != null) {
 					if (m_modified_instance_hash != __instance.GetHashCode()) {
 						m_modified_instance_hash = __instance.GetHashCode();
+						m_player = Resources.FindObjectsOfTypeAll<PlayerCharacter>()[0];
 						InstanceItemInventory inventory = __instance.GetComponent<InstanceItemInventory>();
 						//DivingVars.Instance.set_harpoon_item(inventory);
 						//DivingVars.Instance.set_harpoon_head(inventory);
@@ -382,7 +433,7 @@ public class SuperDavePlugin : DDPlugin {
 				}
 				if (m_toxic_aura_enabled.Value && DivingVars.Instance.toxic_aura_enabled_by_hotkey) {
 					foreach (FishInteractionBody fish in Resources.FindObjectsOfTypeAll<FishInteractionBody>()) {
-						if (fish.InteractionType == FishInteractionBody.FishInteractionType.Calldrone && m_large_pickups.Value) {
+						if (!m_auto_pickup_fish.Value && fish.InteractionType == FishInteractionBody.FishInteractionType.Calldrone && m_large_pickups.Value) {
 							fish.InteractionType = FishInteractionBody.FishInteractionType.Pickup;
 						}
 						if (Vector3.Distance(__instance.transform.position, fish.transform.position) <= m_aura_radius.Value) {
@@ -408,10 +459,15 @@ public class SuperDavePlugin : DDPlugin {
 								}
 							} else {
 								fish.gameObject.GetComponent<Damageable>().OnDie();
-							}	
+							}
 						}
 					}
 				}
+				auto_pickup<FishInteractionBody>(m_auto_pickup_fish.Value, __instance.transform.position);
+				auto_pickup<PickupInstanceItem>(m_auto_pickup_items.Value, __instance.transform.position);
+				auto_pickup<InstanceItemChest>(m_auto_pickup_items.Value, __instance.transform.position);
+				//auto_pickup<BreakableLootObject>(m_auto_pickup_items.Value, __instance.transform.position);
+				auto_pickup<CrabTrapZone>(m_infinite_crab_traps.Value, __instance.transform.position);
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_CharacterController2D_FixedUpdate.Prefix ERROR - " + e);
 			}
@@ -434,6 +490,9 @@ public class SuperDavePlugin : DDPlugin {
 					m_modified_instance_hash = __instance.GetHashCode();
 					DivingVars.Instance.drones_unlocked = __instance.AvailableLiftDroneCount > 0;
 					DivingVars.Instance.crab_traps_unlocked = __instance.AvailableCrabTrapCount > 0;
+				}
+				if (m_infinite_drones.Value) {
+					SROptions.Current.RefillDrone();
 				}
 				try {
 					if (m_infinite_bullets.Value) {
@@ -461,34 +520,6 @@ public class SuperDavePlugin : DDPlugin {
             return true;
         }
     }
-
-	[HarmonyPatch(typeof(PlayerCharacter), "IsCrabTrapAvailable", MethodType.Getter)]
-	class HarmonyPatch_PlayerCharacter_IsCrabTrapAvailable {
-
-		private static void Postfix(ref bool __result) {
-			try {
-				if (m_enabled.Value && m_infinite_crab_traps.Value && DivingVars.Instance.crab_traps_unlocked) {
-					__result = true;	
-				}
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_PlayerCharacter_IsCrabTrapAvailable.Postfix ERROR - " + e);
-			}
-		}
-	}
-
-	[HarmonyPatch(typeof(PlayerCharacter), "IsDroneAvailable", MethodType.Getter)]
-	class HarmonyPatch_PlayerCharacter_IsDroneAvailable {
-
-		private static void Postfix(ref bool __result) {
-			try {
-				if (m_enabled.Value && m_infinite_drones.Value && DivingVars.Instance.drones_unlocked) {
-					__result = true;
-				}
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_PlayerCharacter_IsDroneAvailable.Postfix ERROR - " + e);
-			}
-		}
-	}
 
 	// ================================================================================
 	// == Farm

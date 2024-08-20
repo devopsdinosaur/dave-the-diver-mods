@@ -19,6 +19,8 @@ using Common.Contents;
 using SushiBar.Customer;
 using System.Runtime.InteropServices;
 using TMPro;
+using DR.Save;
+using Common.UI;
 
 [BepInPlugin("devopsdinosaur.davethediver.testing", "Testing", "0.0.1")]
 public class TestingPlugin : BasePlugin {
@@ -96,6 +98,7 @@ public class TestingPlugin : BasePlugin {
 
 		private static bool Prefix(LobbyPlayer __instance) {
 			try {
+				keypress_update();
 				/*
 				if (!m_trigger_one_shot) {
 					return true;
@@ -182,6 +185,7 @@ public class TestingPlugin : BasePlugin {
 
 		private static void Postfix(CharacterController2D __instance) {
 			try {
+				keypress_update();
 				if (!m_trigger_one_shot) {
 					return;
 				}
@@ -220,6 +224,7 @@ public class TestingPlugin : BasePlugin {
 
 		private static bool Prefix(SushiBarManager __instance) {
 			try {
+				keypress_update();
 				if (!m_enabled.Value) {
 					return true;
 				}
@@ -252,6 +257,7 @@ public class TestingPlugin : BasePlugin {
 
 		private static void Postfix(PlayerCharacter __instance) {
 			try {
+				keypress_update();
 				/*
 				if (m_trigger_one_shot) {
 					m_trigger_one_shot = false;
@@ -300,39 +306,40 @@ public class TestingPlugin : BasePlugin {
         }
     }
 
-    [HarmonyPatch(typeof(PickupObjectCommand_SO), "SuccessInteraction")]
-    class HarmonyPatch__PickupObjectCommand_SO_SuccessInteraction {
+	[HarmonyPatch(typeof(CrabTrapObject), "Init")]
+	class HarmonyPatch_1 {
 
-        private static void Postfix() {
-            try {
-				_debug_log($"HarmonyPatch__PickupObjectCommand_SO_SuccessInteraction");
-            } catch (Exception e) {
-                logger.LogError("** HarmonyPatch_CountSecondaryWeaponController_GetRemainedFireCount.Postfix ERROR - " + e);
-            }
-        }
-    }
-
-	[HarmonyPatch(typeof(BaseInteractionCommand_SO), "HoldExecute")]
-	class HarmonyPatch_BaseInteractionCommand_SO_HoldExecute {
-
-		private static void Postfix(BaseCharacter player, float duration) {
-			_debug_log($"HarmonyPatch_BaseInteractionCommand_SO_HoldExecute - duration: {duration}");
+		private static void Postfix(int TID, int baitLv, ref DateTime setTime) {
+			setTime -= new TimeSpan(0, 5, 0);
+			_debug_log($"*** CrabTrapObject.Init - baitLv: {baitLv}, setTime: {setTime}");
 		}
 	}
 
-	[HarmonyPatch(typeof(BaseInteractionCommand_SO), "UpExecute")]
-	class HarmonyPatch_BaseInteractionCommand_SO_UpExecute {
-
-		private static void Postfix(BaseCharacter player) {
-			_debug_log($"HarmonyPatch_BaseInteractionCommand_SO_UpExecute");
+	[HarmonyPatch(typeof(UITextData), "SetText", new Type[] {typeof(string)})]
+	class HarmonyPatch_2 {
+		private static void Postfix(string textKey) {
+			_debug_log($"SetText_1 - textKey: {textKey}");
 		}
 	}
 
-	[HarmonyPatch(typeof(BaseInteractionCommand_SO), "DownExecute")]
-	class HarmonyPatch_BaseInteractionCommand_SO_DownExecute {
+	[HarmonyPatch(typeof(UITextData), "SetText", new Type[] { typeof(int), typeof(string), typeof(UIDataText.OverrideTextFunc), typeof(bool) })]
+	class HarmonyPatch_3 {
+		private static void Postfix(string textKey) {
+			_debug_log($"SetText_2 - textKey: {textKey}");
+		}
+	}
 
-		private static void Postfix(BaseCharacter player) {
-			_debug_log($"HarmonyPatch_BaseInteractionCommand_SO_DownExecute");
+	[HarmonyPatch(typeof(UITextData), "SetText", new Type[] { typeof(string), typeof(bool) })]
+	class HarmonyPatch_4 {
+		private static void Postfix(string textKey) {
+			_debug_log($"SetText_3 - textKey: {textKey}");
+		}
+	}
+
+	[HarmonyPatch(typeof(UITextData), "SetText", new Type[] { typeof(string), typeof(UIDataText.OverrideTextFunc) })]
+	class HarmonyPatch_5 {
+		private static void Postfix(string textKey) {
+			_debug_log($"SetText_4 - textKey: {textKey}");
 		}
 	}
 

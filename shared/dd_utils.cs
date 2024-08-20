@@ -54,7 +54,6 @@ public abstract class DDPlugin : BasePlugin {
             template_data = template_data.Replace("[[" + kvp.Key + "]]", kvp.Value);
         }
         File.WriteAllText(output_path, template_data);
-        Application.Quit();
     }
 }
 

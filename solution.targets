@@ -75,6 +75,11 @@
       <HintPath>$(ManagedDataPath)\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="EzCoding">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(ManagedDataPath)\EzCoding.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Il2Cppmscorlib">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(ManagedDataPath)\Il2Cppmscorlib.dll</HintPath>
