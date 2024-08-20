@@ -1,4 +1,18 @@
-﻿# 0.0.8
+﻿# 0.0.9
+
+## Features
+- 
+
+## Bug Fixes
+- 
+
+## Known Issues
+- 
+
+## In Progress
+- 
+
+# 0.0.8
 
 ## Features
 - Added auto-pickup for fish and most ground items (including pots [chests coming soon]).
