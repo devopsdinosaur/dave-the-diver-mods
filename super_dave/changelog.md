@@ -1,10 +1,10 @@
 ﻿# 0.0.9
 
 ## Features
-- 
+- Added option to disable item info pop-ups when diving.
 
 ## Bug Fixes
-- 
+- Swim speed buff no longer affects fish, just Dave.
 
 ## Known Issues
 - 

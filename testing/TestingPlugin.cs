@@ -306,42 +306,7 @@ public class TestingPlugin : BasePlugin {
         }
     }
 
-	[HarmonyPatch(typeof(CrabTrapObject), "Init")]
-	class HarmonyPatch_1 {
-
-		private static void Postfix(int TID, int baitLv, ref DateTime setTime) {
-			setTime -= new TimeSpan(0, 5, 0);
-			_debug_log($"*** CrabTrapObject.Init - baitLv: {baitLv}, setTime: {setTime}");
-		}
-	}
-
-	[HarmonyPatch(typeof(UITextData), "SetText", new Type[] {typeof(string)})]
-	class HarmonyPatch_2 {
-		private static void Postfix(string textKey) {
-			_debug_log($"SetText_1 - textKey: {textKey}");
-		}
-	}
-
-	[HarmonyPatch(typeof(UITextData), "SetText", new Type[] { typeof(int), typeof(string), typeof(UIDataText.OverrideTextFunc), typeof(bool) })]
-	class HarmonyPatch_3 {
-		private static void Postfix(string textKey) {
-			_debug_log($"SetText_2 - textKey: {textKey}");
-		}
-	}
-
-	[HarmonyPatch(typeof(UITextData), "SetText", new Type[] { typeof(string), typeof(bool) })]
-	class HarmonyPatch_4 {
-		private static void Postfix(string textKey) {
-			_debug_log($"SetText_3 - textKey: {textKey}");
-		}
-	}
-
-	[HarmonyPatch(typeof(UITextData), "SetText", new Type[] { typeof(string), typeof(UIDataText.OverrideTextFunc) })]
-	class HarmonyPatch_5 {
-		private static void Postfix(string textKey) {
-			_debug_log($"SetText_4 - textKey: {textKey}");
-		}
-	}
+	
 
 	/*
 	[HarmonyPatch(typeof(), "")]

@@ -21,7 +21,7 @@ public static class PluginInfo {
     public const string NAME = "super_dave";
 	public const string SHORT_DESCRIPTION = "Lots of little improvements to make the game easier to play (and lots more to come)!";
 
-    public const string VERSION = "0.0.8";
+    public const string VERSION = "0.0.9";
 
     public const string AUTHOR = "devopsdinosaur";
 	public const string GAME_TITLE = "Dave the Diver";
@@ -65,6 +65,7 @@ public class SuperDavePlugin : DDPlugin {
 	//private static ConfigEntry<string> m_harpoon_type;
 	//private static ConfigEntry<string> m_harpoon_head_type;
 	//public static ConfigEntry<int> m_harpoon_head_level;
+	private static ConfigEntry<bool> m_disable_item_info_popup;
 
 	// Farm
 	private static ConfigEntry<float> m_farm_walk_multiplier;
@@ -195,6 +196,7 @@ public class SuperDavePlugin : DDPlugin {
 			m_infinite_drones = this.Config.Bind<bool>("Diving", "Diving - Infinite Drones", false, "Set to true to enable infinite salvage drones.");
 			m_infinite_oxygen = this.migrate_option<bool>("Diving", "Infinite Oxygen", "Diving - Infinite Oxygen", false, "Set to true to have infinite oxygen when diving (and when not diving, but that's a freebie).");
 			m_invincible = this.migrate_option<bool>("Diving", "Invincible", "Diving - Invincible", false, "Set to true to take no damage when hit.");
+			m_disable_item_info_popup = this.Config.Bind<bool>("Diving", "Diving - Disable Item Info Popups", false, "Set to true to disable the item info popup windows that tend to get WAY behind if using auto-pickup.");
 			m_large_pickups = this.Config.Bind<bool>("Diving", "Diving - Enable Large Pickups", false, "Set to true to enable large fish to be picked up without the need for drones.");
 			m_speed_boost = this.migrate_option<float>("Diving", "Speed Boost", "Diving - Speed Boost", 0f, "Permanent speed boost when diving (float, default 0f [set to 0 to disable]).");
 			m_toxic_aura_enabled = this.migrate_option<bool>("Diving", "Toxic Aura: Enabled", "Diving - Toxic Aura: Enabled", false, "Set to true to enable the instant-fish-killing (or sleeping if 'Toxic Aura: Sleep Effect' is true) aura around Dave.");
@@ -208,12 +210,12 @@ public class SuperDavePlugin : DDPlugin {
 			m_hotkey_change_aura_type = this.Config.Bind<string>("Hotkeys", "Hotkey - Change Toxic Aura Mode", "Backslash", "Comma-separated list of Unity Keycodes, any of which will change the toxic aura mode (if enabled) between Kill/Sleep.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
 			
 			// Sushi Bar
-			m_staff_cook_multiplier = this.Config.Bind<float>("Sushi", "Sushi - Cook Multiplier", 0f, "Multiplier applied to sushi bar staff cooking speed (float, default 0f [ < 1 == faster, < 1 == slower, set to 0 to disable]).");
+			m_staff_cook_multiplier = this.Config.Bind<float>("Sushi", "Sushi - Cook Multiplier", 0f, "Multiplier applied to sushi bar staff cooking speed (float, default 0f [ < 1 == faster, > 1 == slower, set to 0 to disable]).");
 			m_infinite_customer_patience = this.migrate_option<bool>("Sushi", "Infinite Customer Patience", "Sushi - Infinite Customer Patience", false, "Set to true to make customers never storm off if the food/drinks are too slow.");
 			m_infinite_wasabi = this.Config.Bind<bool>("Sushi", "Sushi - Infinite Wasabi", false, "Set to true to never need to refill wasabi.");
 			m_sushi_money_boost = this.Config.Bind<float>("Sushi", "Sushi - Money Boost", 0f, "Money boost applied to all customer purchases at sushi bar (float, default 0f [set to 0 to disable]).");
 			m_sushi_speed_boost = this.migrate_option<float>("Sushi", "Sushi Speed Boost", "Sushi - Speed Boost", 0f, "Permanent speed boost when working in sushi bar (float, default 0f [set to 0 to disable]).");
-			m_staff_walk_multiplier = this.Config.Bind<float>("Sushi", "Sushi - Walk Multiplier", 0f, "Multiplier applied to sushi bar staff walking speed [note: this also affects Dave on top of 'Sushi - Speed Boost'] (float, default 0f [ < 1 == faster, < 1 == slower, set to 0 to disable]).");
+			m_staff_walk_multiplier = this.Config.Bind<float>("Sushi", "Sushi - Walk Multiplier", 0f, "Multiplier applied to sushi bar staff walking speed [note: this also affects Dave on top of 'Sushi - Speed Boost'] (float, default 0f [ < 1 == faster, > 1 == slower, set to 0 to disable]).");
 
 			this.plugin_info = PluginInfo.to_dict();
 			this.create_nexus_page();
@@ -354,7 +356,7 @@ public class SuperDavePlugin : DDPlugin {
 
 		private static void Postfix(BuffHandler __instance) {
 			try {
-				if (m_enabled.Value && m_speed_boost.Value > 0) {
+				if (m_enabled.Value && m_speed_boost.Value > 0 && __instance.gameObject.name == "DaveCharacter") {
 					__instance.GetBuffComponents.AddMoveSpeedParam(1234567, m_speed_boost.Value);
 				}
 			} catch (Exception e) {
@@ -520,6 +522,16 @@ public class SuperDavePlugin : DDPlugin {
             return true;
         }
     }
+
+	[HarmonyPatch(typeof(GetInfoPanelUI), "WaitOnPopup")]
+	class HarmonyPatch_GetInfoPanelUI_WaitOnPopup {
+		private static void Postfix(GetInfoPanelUI __instance, GetInfoPanelUI.GetItemInfo info) {
+			_debug_log($"WaitOnPopup - tid: {info.itemTID}");
+			if (m_enabled.Value && m_disable_item_info_popup.Value) {
+				__instance.gameObject.SetActive(false);
+			}
+		}
+	}
 
 	// ================================================================================
 	// == Farm
