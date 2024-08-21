@@ -5,6 +5,7 @@
 
 ## Bug Fixes
 - Swim speed buff no longer affects fish, just Dave.
+- Auto crab traps now correctly use lvl 9 bait for better catches.
 
 ## Known Issues
 - 

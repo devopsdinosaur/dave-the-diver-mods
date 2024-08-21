@@ -409,7 +409,7 @@ public class SuperDavePlugin : DDPlugin {
 					}
 				} else if (item is CrabTrapZone crab_trap_zone && !item.transform.Find("CrabTrap(Clone)")) {
 					if (crab_trap_zone.CheckAvailableInteraction(m_player)) {
-						crab_trap_zone.SetUpCrabTrap(99);
+						crab_trap_zone.SetUpCrabTrap(9);
 					}
 				}
 			}
