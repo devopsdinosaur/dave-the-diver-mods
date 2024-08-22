@@ -238,6 +238,8 @@ class Diving {
             }
         }
 
+        public static int m_modified_character_hash = 0;
+
         public static void toxic_aura_update() {
             try {
                 CharacterController2D character;
@@ -245,6 +247,10 @@ class Diving {
                     return;
                 }
                 Diving.Instance.initialize();
+                if (m_modified_character_hash != character.GetHashCode()) {
+                    m_modified_character_hash = character.GetHashCode();
+                    
+                }
                 foreach (FishInteractionBody fish in Resources.FindObjectsOfTypeAll<FishInteractionBody>()) {
                     if (!Settings.m_auto_pickup_fish.Value && fish.InteractionType == FishInteractionBody.FishInteractionType.Calldrone && Settings.m_large_pickups.Value) {
                         fish.InteractionType = FishInteractionBody.FishInteractionType.Pickup;
