@@ -2,16 +2,20 @@
 
 ## Features
 - Added option to disable item info pop-ups when diving.
+- Auto-pickup and Toxic auras now have options to set pulse frequency (to reduce lag).
 
 ## Bug Fixes
 - Swim speed buff no longer affects fish, just Dave.
 - Auto crab traps now correctly use lvl 9 bait for better catches.
 
 ## Known Issues
-- 
+- Toxic Aura will hit ally fish (ex. baby whale).  Currently need to temporarily disable the aura (default: Ctrl+Backspace) when getting near the fish.
+
 
 ## In Progress
-- 
+- Allow toxic aura to differentiate between ally and non-ally fish.
+- Add auto-pickup of chests and hittables (ore/seaweed/etc).
+- Ability to set all equipment to anything when starting dive.
 
 # 0.0.8
 

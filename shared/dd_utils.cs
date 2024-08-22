@@ -14,6 +14,14 @@ public abstract class DDPlugin : BasePlugin {
     protected Dictionary<string, string> plugin_info = null;
     protected static ManualLogSource logger;
 
+    public static void _debug_log(object text) {
+        logger.LogInfo(text);
+    }
+
+    public static void _error_log(object text) {
+        logger.LogError(text);
+    }
+
     protected void create_nexus_page() {
         if (plugin_info == null) {
             logger.LogWarning("* create_nexus_page WARNING - plugin_info dict must be initialized before calling this method.");
