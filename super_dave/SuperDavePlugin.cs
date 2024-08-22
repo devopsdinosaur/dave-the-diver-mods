@@ -56,6 +56,7 @@ public class SuperDavePlugin : DDPlugin {
 	private static ConfigEntry<bool> m_toxic_aura_enabled;
 	private static ConfigEntry<bool> m_toxic_aura_sleep;
 	private static ConfigEntry<float> m_aura_radius;
+	private static ConfigEntry<float> m_aura_update_frequency;
 	private static ConfigEntry<float> m_speed_boost;
 	private static ConfigEntry<bool> m_infinite_bullets;
     private static ConfigEntry<bool> m_weightless_items;
@@ -90,6 +91,28 @@ public class SuperDavePlugin : DDPlugin {
 	private const int HOTKEY_AURA_ON = 1;
 	private const int HOTKEY_AURA_TYPE = 2;
 	private static Dictionary<int, List<KeyCode>> m_hotkeys = null;
+
+	class Singletons {
+		private static T get_instance<T>(ref T instance) where T : MonoBehaviour {
+			try {
+				if (instance != null) {
+					_ = instance.enabled;
+					return instance;
+				}
+			} catch {}
+			foreach (T obj in Resources.FindObjectsOfTypeAll<T>()) {
+				return instance = obj;
+			}
+			return instance = null;
+		}
+
+		private static PlayerCharacter m_player = null;
+		public static PlayerCharacter Player {
+			get {
+				return get_instance<PlayerCharacter>(ref m_player);
+			}
+		}
+	}
 
 	class DivingVars {
 		private static DivingVars m_instance = null;
@@ -202,6 +225,7 @@ public class SuperDavePlugin : DDPlugin {
 			m_toxic_aura_enabled = this.migrate_option<bool>("Diving", "Toxic Aura: Enabled", "Diving - Toxic Aura: Enabled", false, "Set to true to enable the instant-fish-killing (or sleeping if 'Toxic Aura: Sleep Effect' is true) aura around Dave.");
 			m_toxic_aura_sleep = this.Config.Bind<bool>("Diving", "Diving - Toxic Aura: Sleep Effect", false, "Set to true to switch from killing aura to sleep-inducing aura.");
 			m_aura_radius = this.migrate_option<float>("Diving", "Toxic Aura: Radius", "Diving - Toxic Aura: Radius", 3.0f, "Radius (in meters?) around the character in which fish will be insta-killed, if Toxic Aura is enabled (float, default 3.0f).");
+			m_aura_update_frequency = this.Config.Bind<float>("Diving", "Diving - Toxic Aura: Update Frequency", 0.5f, "Time (in seconds) between ticks/pulses of toxic aura (float, default 0.5f [i.e. 2 pulses per second], lower numbers may impact frame rate).");
 			m_weightless_items = this.migrate_option<bool>("Diving", "Weightless Items (Infinite Carry Weight)", "Diving - Weightless Items (Infinite Carry Weight)", false, "Set to true to have reduce the weight of all items to 0, effectively giving infinite carry weight and inventory space.");
 
 			// Hotkeys
@@ -229,6 +253,7 @@ public class SuperDavePlugin : DDPlugin {
 			PluginUpdater.create(this, logger);
 			PluginUpdater.Instance.register("global", 1.0f, global_update);
 			PluginUpdater.Instance.register("keypress", 0f, keypress_update);
+			PluginUpdater.Instance.register("toxic_aura_update", 0f, toxic_aura_update);
 			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
@@ -287,6 +312,17 @@ public class SuperDavePlugin : DDPlugin {
 			if (DivingVars.Instance != null) {
 				DivingVars.Instance.toxic_aura_sleep_by_hotkey = !DivingVars.Instance.toxic_aura_sleep_by_hotkey;
 			}
+		}
+	}
+
+	private static void toxic_aura_update() {
+		try {
+			if (!m_enabled.Value || Singletons.Player == null) {
+				return;
+			}
+			_debug_log(".");
+		} catch (Exception e) {
+			logger.LogError("** toxic_aura_update ERROR - " + e);
 		}
 	}
 
