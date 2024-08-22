@@ -21,7 +21,7 @@ public static class PluginInfo {
     public const string NAME = "super_dave";
 	public const string SHORT_DESCRIPTION = "Lots of little improvements to make the game easier to play (and lots more to come)!";
 
-    public const string VERSION = "0.0.9";
+    public const string VERSION = "0.0.10";
 
     public const string AUTHOR = "devopsdinosaur";
 	public const string GAME_TITLE = "Dave the Diver";
