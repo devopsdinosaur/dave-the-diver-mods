@@ -52,7 +52,7 @@ public class SuperDavePlugin : DDPlugin {
 			this.m_harmony.PatchAll();
 			PluginUpdater.create(this, logger);
 			Hotkeys.load();
-			Diving.load();
+			Diving.load(this);
 			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);

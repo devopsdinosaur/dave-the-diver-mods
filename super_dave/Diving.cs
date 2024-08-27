@@ -14,6 +14,7 @@ class Diving {
             return m_instance;
         }
     }
+    private static DDPlugin m_plugin = null;
     private bool m_is_initialized = false;
     private bool m_toxic_aura_enabled_by_hotkey = true;
     private bool m_toxic_aura_sleep_by_hotkey = true;
@@ -24,6 +25,7 @@ class Diving {
     private Dictionary<HarpoonItemType, HarpoonSpecData> harpoon_specs = new Dictionary<HarpoonItemType, HarpoonSpecData>();
     private static List<GameObject> m_next_frame_destroy_objects = new List<GameObject>();
     private static List<IntegratedItemType> m_pickup_item_types = new List<IntegratedItemType>();
+    private static List<string> m_all_pickup_item_names = new List<string>();
 
     private void initialize() {
         if (this.m_is_initialized) {
@@ -46,10 +48,12 @@ class Diving {
         foreach (List<HarpoonHeadSpecData> specs in this.harpoon_heads.Values) {
             specs.Sort((x, y) => x.Damage.CompareTo(y.Damage));
         }
+        DDPlugin._info_log("Full list of item name keys (for blacklist usage): " + String.Join(",", m_all_pickup_item_names));
         this.m_is_initialized = true;
     }
 
-    public static void load() {
+    public static void load(DDPlugin plugin) {
+        m_plugin = plugin;
         foreach (string key in Settings.m_auto_pickup_item_category_whitelist.Value.Split(',')) {
             string trimmed_key = key.Trim();
             if (trimmed_key != "") {
@@ -119,6 +123,9 @@ class Diving {
                 try {
                     if (Settings.m_enabled.Value && Settings.m_weightless_items.Value) {
                         itemBase.ItemWeight = 0;
+                    }
+                    if (!m_all_pickup_item_names.Contains(itemBase.ItemTextID)) {
+                        m_all_pickup_item_names.Add(itemBase.ItemTextID);
                     }
                     return true;
                 } catch (Exception e) {

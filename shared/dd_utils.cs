@@ -18,6 +18,10 @@ public abstract class DDPlugin : BasePlugin {
         logger.LogInfo(text);
     }
 
+    public static void _info_log(object text) {
+        logger.LogInfo(text);
+    }
+
     public static void _error_log(object text) {
         logger.LogError(text);
     }
