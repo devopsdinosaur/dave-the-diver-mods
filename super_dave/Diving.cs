@@ -23,6 +23,7 @@ class Diving {
     private Dictionary<HarpoonHeadItemType, List<HarpoonHeadSpecData>> harpoon_heads = new Dictionary<HarpoonHeadItemType, List<HarpoonHeadSpecData>>();
     private Dictionary<HarpoonItemType, HarpoonSpecData> harpoon_specs = new Dictionary<HarpoonItemType, HarpoonSpecData>();
     private static List<GameObject> m_next_frame_destroy_objects = new List<GameObject>();
+    private static List<IntegratedItemType> m_pickup_item_types = new List<IntegratedItemType>();
 
     private void initialize() {
         if (this.m_is_initialized) {
@@ -49,6 +50,12 @@ class Diving {
     }
 
     public static void load() {
+        foreach (string key in Settings.m_auto_pickup_item_category_whitelist.Value.Split(',')) {
+            string trimmed_key = key.Trim();
+            if (trimmed_key != "") {
+                m_pickup_item_types.Add((IntegratedItemType) System.Enum.Parse(typeof(IntegratedItemType), trimmed_key));
+            }
+        }
         PluginUpdater.Instance.register("Diving.auto_pickup_update", Settings.m_auto_pickup_frequency.Value, Updaters.auto_pickup_update);
         PluginUpdater.Instance.register("Diving.general_update", 1f, Updaters.general_update);
         PluginUpdater.Instance.register("Diving.toxic_aura_update", Settings.m_aura_update_frequency.Value, Updaters.toxic_aura_update);
@@ -136,6 +143,20 @@ class Diving {
             }
         }
 
+        [HarmonyPatch(typeof(PlayerCharacter), "IsCrabTrapAvailable", MethodType.Getter)]
+        class HarmonyPatch_PlayerCharacter_IsCrabTrapAvailable {
+
+            private static void Postfix(PlayerCharacter __instance, ref bool __result) {
+                try {
+                    if (Settings.m_enabled.Value && Settings.m_infinite_crab_traps.Value) {
+                        __result = true;
+                    }
+                } catch (Exception e) {
+                    DDPlugin._error_log("** HarmonyPatch_PlayerCharacter_IsCrabTrapAvailable.Prefix ERROR - " + e);
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(PlayerCharacter), "SetHPDamage")]
         class HarmonyPatch_PlayerCharacter_SetHPDamage {
             private static bool Prefix() {
@@ -150,7 +171,7 @@ class Diving {
     }
 
     public class Updaters {
-        private static void auto_pickup<T>(bool enabled, PlayerCharacter player, Vector3 player_pos) where T : MonoBehaviour {
+        private static void auto_pickup<T>(bool enabled, PlayerCharacter player, Vector3 player_pos, Func<T, bool> callback) where T : MonoBehaviour {
             if (!enabled) {
                 return;
             }
@@ -159,19 +180,21 @@ class Diving {
                     continue;
                 }
                 if (item is FishInteractionBody fish) {
-                    if (fish.CheckAvailableInteraction(player) && fish.InteractionType == FishInteractionBody.FishInteractionType.Pickup) {
+                    if (fish.CheckAvailableInteraction(player) && fish.InteractionType == FishInteractionBody.FishInteractionType.Pickup && (callback == null || callback(item))) {
                         fish.SuccessInteract(player);
                         m_next_frame_destroy_objects.Add(fish.gameObject);
                     }
-                } else if (item is PickupInstanceItem pickup) {
-                    if (pickup.CheckAvailableInteraction(player)) {
-                        pickup.SuccessInteract(player);
-                        m_next_frame_destroy_objects.Add(pickup.gameObject);
-                    }
-                } else if (item is InstanceItemChest chest && chest.gameObject.name.Contains("IngredientPot")) {
+                } else if (item is PickupInstanceItem pickup && (callback == null || callback(item))) {
+                    try {
+                        if (pickup.CheckAvailableInteraction(player)) {
+                            pickup.SuccessInteract(player);
+                            m_next_frame_destroy_objects.Add(pickup.gameObject);
+                        }
+                    } catch { }
+                } else if (item is InstanceItemChest chest && chest.gameObject.name.Contains("IngredientPot") && (callback == null || callback(item))) {
                     chest.SuccessInteract(player);
                     m_next_frame_destroy_objects.Add(chest.gameObject);
-                } else if (item is BreakableLootObject breakable) {
+                } else if (item is BreakableLootObject breakable && (callback == null || callback(item))) {
                     breakable.OnTakeDamage(new AttackData() {
                         damage = 99999,
                         attackType = AttackType.Player_Melee
@@ -180,12 +203,23 @@ class Diving {
                     if (breakable.IsDead()) {
                         m_next_frame_destroy_objects.Add(breakable.gameObject);
                     }
-                } else if (item is CrabTrapZone crab_trap_zone && !item.transform.Find("CrabTrap(Clone)") && player.AvailableCrabTrapCount > 0) {
+                } else if (item is CrabTrapZone crab_trap_zone && !item.transform.Find("CrabTrap(Clone)") && player.AvailableCrabTrapCount > 0 && (callback == null || callback(item))) {
                     if (crab_trap_zone.CheckAvailableInteraction(player)) {
                         crab_trap_zone.SetUpCrabTrap(9);
                     }
                 }
             }
+        }
+
+        public static bool auto_pickup_callback_PickupInstanceItem(PickupInstanceItem _item) {
+            IntegratedItem item = DataManager.Instance.GetIntegratedItem(_item.GetItemID());
+            DDPlugin._debug_log($"name: {item.SpawnObjectName}, type: {item.IntegratedType}, isEquip: {item.IsEquipmentType()}");
+            if (!m_pickup_item_types.Contains((IntegratedItemType) item.IntegratedType)) {
+                return false;
+            }
+            //SpecDataBase spec = item?.specData;
+            //DDPlugin._debug_log($"name: {spec.Name}, isEquip: {item.IsEquipmentType()}");
+            return false;
         }
 
         public static void auto_pickup_update() {
@@ -196,11 +230,11 @@ class Diving {
                     return;
                 }
                 Diving.Instance.initialize();
-                auto_pickup<FishInteractionBody>(Settings.m_auto_pickup_fish.Value, player, character.transform.position);
-                auto_pickup<PickupInstanceItem>(Settings.m_auto_pickup_items.Value, player, character.transform.position);
-                auto_pickup<InstanceItemChest>(Settings.m_auto_pickup_items.Value, player, character.transform.position);
+                auto_pickup<FishInteractionBody>(Settings.m_auto_pickup_fish.Value, player, character.transform.position, null);
+                auto_pickup<PickupInstanceItem>(Settings.m_auto_pickup_items.Value, player, character.transform.position, auto_pickup_callback_PickupInstanceItem);
+                auto_pickup<InstanceItemChest>(Settings.m_auto_pickup_items.Value, player, character.transform.position, null);
                 //auto_pickup<BreakableLootObject>(Settings.m_auto_pickup_items.Value, player, character.transform.position);
-                auto_pickup<CrabTrapZone>(Settings.m_infinite_crab_traps.Value, player, character.transform.position);
+                auto_pickup<CrabTrapZone>(Settings.m_auto_drop_crab_traps.Value, player, character.transform.position, null);
             } catch (Exception e) {
                 DDPlugin._error_log("** Diving.auto_pickup_update ERROR - " + e);
             }
@@ -231,10 +265,12 @@ class Diving {
                 return; 
             }
             if (Hotkeys.is_hotkey_down(Hotkeys.HOTKEY_AURA_ON)) {
-                Diving.Instance.m_toxic_aura_enabled_by_hotkey = Diving.Instance.m_toxic_aura_enabled_by_hotkey;
+                Diving.Instance.m_toxic_aura_enabled_by_hotkey = !Diving.Instance.m_toxic_aura_enabled_by_hotkey;
+                PluginUpdater.Instance.trigger("toxic_aura_update");
             }
             if (Hotkeys.is_hotkey_down(Hotkeys.HOTKEY_AURA_TYPE)) {
                 Diving.Instance.m_toxic_aura_sleep_by_hotkey = !Diving.Instance.m_toxic_aura_sleep_by_hotkey;
+                PluginUpdater.Instance.trigger("toxic_aura_update");
             }
         }
 

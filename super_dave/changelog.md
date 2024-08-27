@@ -1,10 +1,11 @@
-﻿# 0.0.10
+﻿# 0.0.11
 
 ## Features
+- Split "Infinite Crab Traps" into two new options: Infinite and Auto Drop crab traps.  Now users can have infinite manual crab traps and/or auto-dropping traps.
 - 
 
 ## Bug Fixes
-- 
+- Toxic aura will now pulse immediately when hotkey is pressed.
 
 ## Known Issues
 - Toxic Aura will hit ally fish (ex. baby whale).  Currently need to temporarily disable the aura (default: Ctrl+Backspace) when getting near the fish.
@@ -14,6 +15,9 @@
 - Add auto-pickup of chests and hittables (ore/seaweed/etc).
 - Ability to set all equipment to anything when starting dive.
 
+
+# 0.0.10
+Minor fix for bug with hotkeys in 0.0.9.
 
 # 0.0.9
 

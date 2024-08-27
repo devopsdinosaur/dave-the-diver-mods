@@ -98,8 +98,8 @@ public class TestingPlugin : BasePlugin {
 
 		private static bool Prefix(LobbyPlayer __instance) {
 			try {
-				keypress_update();
 				/*
+				keypress_update();
 				if (!m_trigger_one_shot) {
 					return true;
 				}
@@ -306,7 +306,43 @@ public class TestingPlugin : BasePlugin {
         }
     }
 
-	
+	[HarmonyPatch(typeof(SetUPCrabTrapCommand_SO), "UpExecute")]
+	class HarmonyPatch_SetUPCrabTrapCommand_SO_1 {
+
+		private static void Postfix() {
+			//_debug_log("UpExecute");
+		}
+	}
+
+	[HarmonyPatch(typeof(SetUPCrabTrapCommand_SO), "HoldExecute")]
+	class HarmonyPatch_SetUPCrabTrapCommand_SO_2 {
+
+		private static void Postfix(SetUPCrabTrapCommand_SO __instance) {
+			//_debug_log("HoldExecute");
+			//ReflectionUtils.il2cpp_get_field(__instance, "isExecuted").SetValue(__instance, true);
+		}
+	}
+
+	[HarmonyPatch(typeof(PlayerCharacter), "AvailableCrabTrapCount", MethodType.Getter)]
+	class HarmonyPatch_PlayerCharacter_AvailableCrabTrapCount {
+
+		private static void Postfix() {
+			_debug_log("AvailableCrabTrapCount");
+		}
+	}
+
+	[HarmonyPatch(typeof(CrabTrapZone), "DisableCrabTrapZone")]
+	class HarmonyPatch_CrabTrapZone_DisableCrabTrapZone {
+		private static bool Prefix() {
+			try {
+				_debug_log("DisableCrabTrapZone");
+				return false;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_CrabTrapZone_DisableCrabTrapZone.Prefix ERROR - " + e);
+			}
+			return true;
+		}
+	}
 
 	/*
 	[HarmonyPatch(typeof(), "")]

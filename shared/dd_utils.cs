@@ -22,6 +22,10 @@ public abstract class DDPlugin : BasePlugin {
         logger.LogError(text);
     }
 
+    public bool is_running_on_dev_box() {
+        return File.Exists(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "nexus", this.plugin_info["guid"], "template.txt")));
+    }
+
     protected void create_nexus_page() {
         if (plugin_info == null) {
             logger.LogWarning("* create_nexus_page WARNING - plugin_info dict must be initialized before calling this method.");
@@ -471,6 +475,15 @@ public class PluginUpdater : MonoBehaviour {
         }
         this.m_actions = new_actions;
         this.m_is_dirty = true;
+    }
+
+    public void trigger(string name) {
+        foreach (UpdateInfo info in this.m_actions) {
+            if (info.name == name) {
+                info.elapsed = info.frequency;
+                return;
+            }
+        }
     }
 
     public void Update() {
