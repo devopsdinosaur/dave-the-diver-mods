@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using DR;
+using System.IO;
+using System.Reflection;
 
 class Diving {
     private static Diving m_instance = null;
@@ -26,6 +28,7 @@ class Diving {
     private static List<GameObject> m_next_frame_destroy_objects = new List<GameObject>();
     private static List<IntegratedItemType> m_pickup_item_types = new List<IntegratedItemType>();
     private static List<string> m_all_pickup_item_names = new List<string>();
+    private static Dictionary<string, bool> m_enabled_pickup_items = new Dictionary<string, bool>();
 
     private void initialize() {
         if (this.m_is_initialized) {
@@ -63,6 +66,26 @@ class Diving {
         PluginUpdater.Instance.register("Diving.auto_pickup_update", Settings.m_auto_pickup_frequency.Value, Updaters.auto_pickup_update);
         PluginUpdater.Instance.register("Diving.general_update", 1f, Updaters.general_update);
         PluginUpdater.Instance.register("Diving.toxic_aura_update", Settings.m_aura_update_frequency.Value, Updaters.toxic_aura_update);
+    }
+
+    public void load_enabled_pickup_items() {
+        try {
+            foreach (string key in m_all_pickup_item_names) {
+                m_enabled_pickup_items[key] = false;
+            }
+            string path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "auto-pickup-items.txt"));
+            if (!File.Exists(path)) {
+                return;
+            }
+            foreach (string _line in File.ReadAllText(path).Split('\n')) {
+                string line = _line.Trim();
+                if (string.IsNullOrEmpty(line) || line[0] == '#') {
+                    continue;
+                }
+            }
+        } catch (Exception e) {
+
+        }
     }
 
     /*
