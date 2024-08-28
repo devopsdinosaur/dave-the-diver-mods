@@ -19,11 +19,10 @@ public class Settings {
     public static ConfigEntry<float> m_boat_walk_speed_boost;
 
     // Diving
+    public static ConfigEntry<bool> m_auto_pickup_debug_mode;
     public static ConfigEntry<float> m_auto_pickup_radius;
     public static ConfigEntry<bool> m_auto_pickup_fish;
     public static ConfigEntry<bool> m_auto_pickup_items;
-    public static ConfigEntry<string> m_auto_pickup_item_category_whitelist;
-    public static ConfigEntry<string> m_auto_pickup_item_blacklist;
     public static ConfigEntry<bool> m_auto_drop_crab_traps;
     public static ConfigEntry<float> m_auto_pickup_frequency;
     public static ConfigEntry<bool> m_infinite_oxygen;
@@ -78,13 +77,12 @@ public class Settings {
         m_fish_farm_walk_multiplier = this.m_plugin.Config.Bind<float>("Fish Farm", "Fish Farm - Walk Multiplier", 0f, "Multiplier applied to Dave when walking/sprinting on the fish farm (float, default 0f [ < 1 == faster, < 1 == slower, set to 0 to disable]).");
 
         // Diving
+        m_auto_pickup_debug_mode = this.m_plugin.Config.Bind<bool>("Diving", "Diving - Auto-pickup: Debug Mode", false, "Set to true to echo item pickup messages to the LogOutput.log file for debugging which items to un-comment in auto-pickup-items.txt file.");
         m_auto_pickup_fish = this.m_plugin.Config.Bind<bool>("Diving", "Diving - Auto-pickup: Fish", false, "Set to true to enable auto pickup of sleeping/netted fish (NOTE: This will disable the Large Pickups option to prevent drone glitches; just be sure to enable Infinite Drones when using this one).");
         m_auto_pickup_frequency = this.m_plugin.Config.Bind<float>("Diving", "Diving - Auto Pickup: Update Frequency", 0.5f, "Time (in seconds) between ticks/pulses of auto-pickup (float, default 0.5f [i.e. 2 pulses per second], lower numbers may impact frame rate).");
         m_auto_pickup_items = this.m_plugin.Config.Bind<bool>("Diving", "Diving - Auto-pickup: Items", false, "Set to true to enable auto pickup of items (wood, pots, etc).");
         m_auto_drop_crab_traps = this.m_plugin.Config.Bind<bool>("Diving", "Diving - Auto-drop: Crab Traps", false, "Set to true to enable auto dropping crab traps (with max bait).");
         m_auto_pickup_radius = this.m_plugin.Config.Bind<float>("Diving", "Diving - Auto-pickup: Radius", 5.0f, "Radius (in meters?) around the character in which objects will be automatically picked up based on enabled pickup settings (float, default 5.0f).");
-        m_auto_pickup_item_category_whitelist = this.m_plugin.Config.Bind<string>("Diving", "Diving - Auto-pickup: Item Category Whitelist", "Bullet,Charm,UpgradeKit,Loot,Farm", "Comma-separatated list of item categories (any combination of: Gun, Harpoon, HarpoonHead, Melee, Bullet, SubHelper, Charm, UpgradeKit, Loot, Farm) representing the categories of items to be automatically picked up.  Items within these categories that are not specified in the Auto-pickup Item Blacklist will be picked up.");
-        //m_auto_pickup_item_blacklist = this.m_plugin.Config.Bind<string>("Diving", "Diving - Auto-pickup: Item Blacklist", "", "Comma-separatated list of item names");
         //m_harpoon_type = this.m_plugin.Config.Bind<string>("Diving", "Diving - Harpoon Type", "", "Harpoon type (one of: Old, Iron, Pump, Merman, NewMV, Alloy) [case sensitive, set to blank to disable].");
         //m_harpoon_head_type = this.m_plugin.Config.Bind<string>("Diving", "Diving - Harpoon Head Type", "", "Harpoon head type (one of: Normal, Electric, Poison, Chain, Sleep, Paralysis, Strong, Fire, Ice) [case sensitive, set to blank to disable].");
         //m_harpoon_head_level = this.m_plugin.Config.Bind<int>("Diving", "Diving - Harpoon Head Level", 0, "Harpoon head level [ignored if Harpoon Head Type is not set] (int, 1 (weakest) - 5 (strongest)).");			

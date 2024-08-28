@@ -8,6 +8,7 @@
     <Content Include="$(BepInExPath)\LogOutput.log" Link="log\LogOutput.log" />
     <Content Include="$(BepInExPath)\config\$(AssemblyName).cfg" Link="config\$(AssemblyName).cfg" />
     <Content Include="$(BepInExPath)\plugins\nexus\$(AssemblyName)\generated.txt" Link="nexus\generated.txt" />
+    <Content Include="$(BepInExPath)\plugins\auto-pickup-items.txt" Link="config\auto-pickup-items.txt" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <ItemGroup>

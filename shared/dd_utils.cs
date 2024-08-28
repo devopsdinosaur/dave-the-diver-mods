@@ -22,6 +22,10 @@ public abstract class DDPlugin : BasePlugin {
         logger.LogInfo(text);
     }
 
+    public static void _warn_log(object text) {
+        logger.LogWarning(text);
+    }
+
     public static void _error_log(object text) {
         logger.LogError(text);
     }

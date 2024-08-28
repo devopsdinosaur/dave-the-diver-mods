@@ -5,6 +5,7 @@ using UnityEngine;
 using DR;
 using System.IO;
 using System.Reflection;
+using System.Linq;
 
 class Diving {
     private static Diving m_instance = null;
@@ -51,40 +52,72 @@ class Diving {
         foreach (List<HarpoonHeadSpecData> specs in this.harpoon_heads.Values) {
             specs.Sort((x, y) => x.Damage.CompareTo(y.Damage));
         }
-        DDPlugin._info_log("Full list of item name keys (for blacklist usage): " + String.Join(",", m_all_pickup_item_names));
+        this.load_enabled_pickup_items();
         this.m_is_initialized = true;
     }
 
     public static void load(DDPlugin plugin) {
         m_plugin = plugin;
-        foreach (string key in Settings.m_auto_pickup_item_category_whitelist.Value.Split(',')) {
-            string trimmed_key = key.Trim();
-            if (trimmed_key != "") {
-                m_pickup_item_types.Add((IntegratedItemType) System.Enum.Parse(typeof(IntegratedItemType), trimmed_key));
-            }
-        }
         PluginUpdater.Instance.register("Diving.auto_pickup_update", Settings.m_auto_pickup_frequency.Value, Updaters.auto_pickup_update);
         PluginUpdater.Instance.register("Diving.general_update", 1f, Updaters.general_update);
         PluginUpdater.Instance.register("Diving.toxic_aura_update", Settings.m_aura_update_frequency.Value, Updaters.toxic_aura_update);
     }
 
     public void load_enabled_pickup_items() {
+        int counter = 1;
+        bool did_error = false;
+        string path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "auto-pickup-items.txt"));
         try {
+            m_all_pickup_item_names.Sort();
             foreach (string key in m_all_pickup_item_names) {
                 m_enabled_pickup_items[key] = false;
             }
-            string path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "auto-pickup-items.txt"));
-            if (!File.Exists(path)) {
-                return;
-            }
-            foreach (string _line in File.ReadAllText(path).Split('\n')) {
-                string line = _line.Trim();
-                if (string.IsNullOrEmpty(line) || line[0] == '#') {
-                    continue;
+            DDPlugin._info_log($"Loading enabled auto-pickup item info from '{path}'.");
+            if (File.Exists(path)) {
+                foreach (string _line in File.ReadAllText(path).Split('\n')) {
+                    counter++;
+                    string line = _line.Trim();
+                    if (string.IsNullOrEmpty(line) || line[0] == '#' || !m_all_pickup_item_names.Contains(line)) {
+                        continue;
+                    }
+                    m_enabled_pickup_items[line] = true;
                 }
+            } else {
+                DDPlugin._info_log("File does not exist.");
             }
         } catch (Exception e) {
+            did_error = true;
+            DDPlugin._warn_log($"* load_enabled_pickup_items WARNING - error parsing auto-pickup-items.txt file (line: {counter}); auto-pickup of items will be disabled until this issue is resolved.  Error = " + e);
+            foreach (string key in m_all_pickup_item_names) {
+                m_enabled_pickup_items[key] = false;
+            }
+        }
+        try {
+            if (did_error && File.Exists(path)) {
+                return;
+            }
+            string output = @"
+# Notes on this file:
+# - Each line in this file represents an item name key in Dave the Diver.
+# - This is a list of *EVERY* item in the game, and not all
+#   items will be something that can be picked up.
+# - Fish are picked up using separate logic, so fish names can be ignored.
+# - Set 'Auto-pickup: Debug Mode' to true to have the mod print debug statements to
+#   LogOutput.log (and the console) when the mod does not pick up an item.  Use the
+#   'name_key' info in those log statements to find the item to enable in this file.
+# - Un-comment the line (remove the #) to enable pickup of the item.
+# - Empty lines or lines beginning with # will be ignored.
+# - Be sure to set 'Auto-pickup: Debug Mode' to false when not debugging, as it can
+#   clutter up the log file.
+# 
 
+";
+            foreach (string key in m_all_pickup_item_names) {
+                output += $"{(m_enabled_pickup_items[key] ? "" : "# ")}{key}\n";
+            }
+            File.WriteAllText(path, output);
+        } catch (Exception e) {
+            DDPlugin._warn_log($"* load_enabled_pickup_items WARNING - unable to write item info to file.  Error = " + e);
         }
     }
 
@@ -147,7 +180,7 @@ class Diving {
                     if (Settings.m_enabled.Value && Settings.m_weightless_items.Value) {
                         itemBase.ItemWeight = 0;
                     }
-                    if (!m_all_pickup_item_names.Contains(itemBase.ItemTextID)) {
+                    if (!string.IsNullOrEmpty(itemBase.ItemTextID) && !m_all_pickup_item_names.Contains(itemBase.ItemTextID)) {
                         m_all_pickup_item_names.Add(itemBase.ItemTextID);
                     }
                     return true;
@@ -221,7 +254,7 @@ class Diving {
                             m_next_frame_destroy_objects.Add(pickup.gameObject);
                         }
                     } catch { }
-                } else if (item is InstanceItemChest chest && chest.gameObject.name.Contains("IngredientPot") && (callback == null || callback(item))) {
+                } else if (item is InstanceItemChest chest && (callback == null || callback(item))) {
                     chest.SuccessInteract(player);
                     m_next_frame_destroy_objects.Add(chest.gameObject);
                 } else if (item is BreakableLootObject breakable && (callback == null || callback(item))) {
@@ -233,7 +266,7 @@ class Diving {
                     if (breakable.IsDead()) {
                         m_next_frame_destroy_objects.Add(breakable.gameObject);
                     }
-                } else if (item is CrabTrapZone crab_trap_zone && !item.transform.Find("CrabTrap(Clone)") && player.AvailableCrabTrapCount > 0 && (callback == null || callback(item))) {
+                } else if (item is CrabTrapZone crab_trap_zone && crab_trap_zone.CheckAvailableInteraction(player) && !item.transform.Find("CrabTrap(Clone)") && player.AvailableCrabTrapCount > 0 && (callback == null || callback(item))) {
                     if (crab_trap_zone.CheckAvailableInteraction(player)) {
                         crab_trap_zone.SetUpCrabTrap(9);
                     }
@@ -241,14 +274,38 @@ class Diving {
             }
         }
 
+        private static List<int> m_debug_echoed_item_hashes = new List<int>();
+
         public static bool auto_pickup_callback_PickupInstanceItem(PickupInstanceItem _item) {
-            IntegratedItem item = DataManager.Instance.GetIntegratedItem(_item.GetItemID());
-            DDPlugin._debug_log($"name: {item.SpawnObjectName}, type: {item.IntegratedType}, isEquip: {item.IsEquipmentType()}");
-            if (!m_pickup_item_types.Contains((IntegratedItemType) item.IntegratedType)) {
-                return false;
+            try {
+                if (_item == null) {
+                    return false;
+                }
+                string text_id = "";
+                int hash = 0;
+                //if (_item is UpgradeKitInstanceItem _upgrade_item) {
+                //    UpgradeKit kit = DataManager.Instance.GetUpgradeKit(_upgrade_item.GetItemID());
+                //    text_id = kit.NameTextID;
+                //    hash = kit.GetHashCode();
+                //} else {
+                try {
+                    IntegratedItem item = DataManager.Instance.GetIntegratedItem((_item.usePreset ? _item.presetItemID : _item.GetItemID()));
+                    text_id = item.ItemTextID;
+                    hash = item.GetHashCode();
+                } catch {
+                    return false;
+                }
+                //}
+                if (!m_enabled_pickup_items[text_id] && Settings.m_auto_pickup_debug_mode.Value && !m_debug_echoed_item_hashes.Contains(hash)) {
+                    DDPlugin._debug_log($"^^ Auto-Pickup Item DEBUG - name_key: {text_id}; not enabled for pickup.");
+                    if (!m_enabled_pickup_items[text_id]) {
+                        m_debug_echoed_item_hashes.Add(hash);
+                    }
+                }
+                return m_enabled_pickup_items[text_id];
+            } catch (Exception e) {
+                DDPlugin._warn_log($"* auto_pickup_callback_PickupInstanceItem WARNING - {_item.usePreset} {_item.presetItemID} {DataManager.Instance.GetIntegratedItem(_item.GetItemID())}" + e);
             }
-            //SpecDataBase spec = item?.specData;
-            //DDPlugin._debug_log($"name: {spec.Name}, isEquip: {item.IsEquipmentType()}");
             return false;
         }
 
