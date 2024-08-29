@@ -98,12 +98,13 @@ public class TestingPlugin : BasePlugin {
 
 		private static bool Prefix(LobbyPlayer __instance) {
 			try {
-				/*
 				keypress_update();
 				if (!m_trigger_one_shot) {
 					return true;
 				}
 				m_trigger_one_shot = false;
+				//DayManager.Instance.SetTimeState(DayTimeState.Morning);
+				/*
 				foreach (SpecDataBase item in Resources.FindObjectsOfTypeAll<SpecDataBase>()) {
 					_debug_log($"{item.Name}");
 					foreach (BuffDebuffEffectData buff in item.buffDatas) {
@@ -320,27 +321,6 @@ public class TestingPlugin : BasePlugin {
 		private static void Postfix(SetUPCrabTrapCommand_SO __instance) {
 			//_debug_log("HoldExecute");
 			//ReflectionUtils.il2cpp_get_field(__instance, "isExecuted").SetValue(__instance, true);
-		}
-	}
-
-	[HarmonyPatch(typeof(PlayerCharacter), "AvailableCrabTrapCount", MethodType.Getter)]
-	class HarmonyPatch_PlayerCharacter_AvailableCrabTrapCount {
-
-		private static void Postfix() {
-			_debug_log("AvailableCrabTrapCount");
-		}
-	}
-
-	[HarmonyPatch(typeof(CrabTrapZone), "DisableCrabTrapZone")]
-	class HarmonyPatch_CrabTrapZone_DisableCrabTrapZone {
-		private static bool Prefix() {
-			try {
-				_debug_log("DisableCrabTrapZone");
-				return false;
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_CrabTrapZone_DisableCrabTrapZone.Prefix ERROR - " + e);
-			}
-			return true;
 		}
 	}
 

@@ -16,7 +16,7 @@
 # Alaska_Pollock
 # Allenypterus
 # American_Lobster
-Ammo_Name
+# Ammo_Name
 # AmmoPack_Name
 # Antarctic_Octopus
 # Antarctic_Octopus_PoisonSac
@@ -40,7 +40,7 @@ Ammo_Name
 # Bigeye_Scad
 # Bigeye_Trevally
 # Black_and_White_Snapper
-# Black_Coral_Name
+Black_Coral_Name
 # Blackfin_Barracuda
 BlackPepper_Name
 # Blackpowder_Vampire_Squid_Name
@@ -48,7 +48,7 @@ BlackPepper_Name
 # BlackTiger_Shrimp
 # Blacktip_ReefShark
 BlackVinegar_Name
-# BladderWrack_Name
+BladderWrack_Name
 # Blobfish
 # Bloodbelly_Comb_Jelly
 # Blu
@@ -124,7 +124,7 @@ Bone_Skull_Name
 # Coral_Trout
 # Crystal_Lobster
 # Cucumber_Name
-# CurryBlock_Name
+CurryBlock_Name
 # CuttleFish
 # Cuttlefish_SkinFragment_Name
 # Decoy_Name
@@ -190,7 +190,7 @@ Bone_Skull_Name
 # Dumbo_octopus
 # Dunkleosteus
 # Dunkleosteus_ThoracicShield
-# Durvillaea_Name
+Durvillaea_Name
 # Dusky_Grouper
 # Eastern_Rock_Lobster
 # Egg_Name
@@ -347,7 +347,7 @@ Good_Catfood_Name
 # HermitCrab_Weapon_Piece
 # Horsehair_Crab
 # Humboldt_Squid
-# Hyalonema_Name
+Hyalonema_Name
 # Ice_Fish
 # IceDiamond_Name
 # InkBomb_Name
@@ -356,7 +356,7 @@ Item_DeepseaCoral
 Item_FeatherCoral
 # Item_GlacierCaveKey
 # Item_JohnWatson2_Suit
-# Item_LotusCoral
+Item_LotusCoral
 # Item_MakiFatherTablet
 # Item_MermanCuju
 # Item_Mike
@@ -364,10 +364,10 @@ Item_FeatherCoral
 # Item_StoneArtifacts
 # Item_StonePlate_WeddingSong
 # Item_Tech_Suit_Part
-# JadeBead_Name
-# JadeBowl_Name
-# JadeFishStatue_Name
-# JadeThurible_Name
+JadeBead_Name
+JadeBowl_Name
+JadeFishStatue_Name
+JadeThurible_Name
 # Jose_SoccerBall
 # Juvenile_Circular_BatFish
 Kajime_Name
@@ -384,7 +384,7 @@ Kajime_Name
 # Marbled_Electric_Ray
 # Marbled_Electric_Ray_Name
 # Marrus_orthocanna_Tentacle_Name
-# Mayonnaise_Name
+Mayonnaise_Name
 # meat_Asian_Sheepshead
 # meat_Blacktip_Shark
 # meat_Boss_Giant_Squid
@@ -442,7 +442,7 @@ Kajime_Name
 # Mima_LotusCoral_Mandoo_Name
 # Mima_SeaGrape_Mandoo_Name
 # Mima_Wakame_Mandoo_Name
-# Miso_Name
+Miso_Name
 # Mission_Seahorse_00
 # Mission_Seahorse_01
 # Mission_Seahorse_02
@@ -453,8 +453,8 @@ Kajime_Name
 # Narrow-barred_Spanish_mackerel
 # Narwhal
 # Narwhal_Tusk
-NitroBooster_LongRange_Name
-NitroBooster_Name
+# NitroBooster_LongRange_Name
+# NitroBooster_Name
 # Normal_BasicRifle_Name
 Normal_Catfood_Name
 # Normal_Gold_Name
@@ -470,7 +470,7 @@ Normal_Catfood_Name
 # O2CapsuleLarge_Name
 # Oarfish
 # Ocean_Sunfish
-# OliveOil_Name
+OliveOil_Name
 # Onion_Name
 # OpalPipe_Name
 Ore_Amethyst_Name
@@ -519,7 +519,7 @@ Rope_Name
 # Sail_Fish_Bill
 # Sally_Lightfoot_Crab
 # Salmon_Snailfish
-# Salt_Name
+Salt_Name
 # SamuraiSword_Name
 # SapphireCrown_Name
 ScrapIron_Name
@@ -639,7 +639,7 @@ Tangle_Name
 Turmeric_Name
 # Turtle_Magma_Name
 # tuttle_gr
-# Umbellula_Name
+Umbellula_Name
 # Unidentified_ExtraTime_Name
 # Unidentified_LongDash_Name
 # Unidentified_ShortDash_Name

@@ -2,17 +2,23 @@
 
 ## Features
 - Split "Infinite Crab Traps" into two new options: Infinite and Auto Drop crab traps.  Now users can have infinite manual crab traps and/or auto-dropping traps.
-- 
+- Added 'auto-pickup-items.txt' file (created after first run in BepInEx/config) to specify which items should be automatically picked up.  Open the file or the mod Nexus page for editing details.
+- Auto-pickup will now open chests.
+
+## Minor Changes
+- Toxic Aura: Sleep now defaults to true.
+- Adjusted default aura sizes up to 6m.
 
 ## Bug Fixes
 - Toxic aura will now pulse immediately when hotkey is pressed.
+- Fixed a glitch where Dave would auto-drop traps on non-existent rocks with superhuman speed (thanks to mishrasumitranjan for finding this issue).
 
 ## Known Issues
 - Toxic Aura will hit ally fish (ex. baby whale).  Currently need to temporarily disable the aura (default: Ctrl+Backspace) when getting near the fish.
 
 ## In Progress
 - Allow toxic aura to differentiate between ally and non-ally fish.
-- Add auto-pickup of chests and hittables (ore/seaweed/etc).
+- Add auto-pickup hittables (ore/seaweed/etc).
 - Ability to set all equipment to anything when starting dive.
 
 

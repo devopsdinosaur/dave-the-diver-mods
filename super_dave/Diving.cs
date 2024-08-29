@@ -70,7 +70,7 @@ class Diving {
         try {
             m_all_pickup_item_names.Sort();
             foreach (string key in m_all_pickup_item_names) {
-                m_enabled_pickup_items[key] = false;
+                m_enabled_pickup_items[key] = DefaultAutoPickupItems.enabled_items.Contains(key);
             }
             DDPlugin._info_log($"Loading enabled auto-pickup item info from '{path}'.");
             if (File.Exists(path)) {
@@ -97,7 +97,9 @@ class Diving {
                 return;
             }
             string output = @"
+
 # Notes on this file:
+#
 # - Each line in this file represents an item name key in Dave the Diver.
 # - This is a list of *EVERY* item in the game, and not all
 #   items will be something that can be picked up.
@@ -109,7 +111,6 @@ class Diving {
 # - Empty lines or lines beginning with # will be ignored.
 # - Be sure to set 'Auto-pickup: Debug Mode' to false when not debugging, as it can
 #   clutter up the log file.
-# 
 
 ";
             foreach (string key in m_all_pickup_item_names) {
@@ -239,7 +240,7 @@ class Diving {
                 return;
             }
             foreach (T item in Resources.FindObjectsOfTypeAll<T>()) {
-                if (Vector3.Distance(player_pos, item.transform.position) > Settings.m_auto_pickup_radius.Value || m_next_frame_destroy_objects.Contains(item.gameObject)) {
+                if (item.transform.position == Vector3.zero || Vector3.Distance(player_pos, item.transform.position) > Settings.m_auto_pickup_radius.Value || m_next_frame_destroy_objects.Contains(item.gameObject)) {
                     continue;
                 }
                 if (item is FishInteractionBody fish) {
@@ -266,7 +267,7 @@ class Diving {
                     if (breakable.IsDead()) {
                         m_next_frame_destroy_objects.Add(breakable.gameObject);
                     }
-                } else if (item is CrabTrapZone crab_trap_zone && crab_trap_zone.CheckAvailableInteraction(player) && !item.transform.Find("CrabTrap(Clone)") && player.AvailableCrabTrapCount > 0 && (callback == null || callback(item))) {
+                } else if (item is CrabTrapZone crab_trap_zone && !item.transform.Find("CrabTrap(Clone)") && player.AvailableCrabTrapCount > 0 && (callback == null || callback(item))) {
                     if (crab_trap_zone.CheckAvailableInteraction(player)) {
                         crab_trap_zone.SetUpCrabTrap(9);
                     }
@@ -283,11 +284,6 @@ class Diving {
                 }
                 string text_id = "";
                 int hash = 0;
-                //if (_item is UpgradeKitInstanceItem _upgrade_item) {
-                //    UpgradeKit kit = DataManager.Instance.GetUpgradeKit(_upgrade_item.GetItemID());
-                //    text_id = kit.NameTextID;
-                //    hash = kit.GetHashCode();
-                //} else {
                 try {
                     IntegratedItem item = DataManager.Instance.GetIntegratedItem((_item.usePreset ? _item.presetItemID : _item.GetItemID()));
                     text_id = item.ItemTextID;
@@ -295,7 +291,6 @@ class Diving {
                 } catch {
                     return false;
                 }
-                //}
                 if (!m_enabled_pickup_items[text_id] && Settings.m_auto_pickup_debug_mode.Value && !m_debug_echoed_item_hashes.Contains(hash)) {
                     DDPlugin._debug_log($"^^ Auto-Pickup Item DEBUG - name_key: {text_id}; not enabled for pickup.");
                     if (!m_enabled_pickup_items[text_id]) {
