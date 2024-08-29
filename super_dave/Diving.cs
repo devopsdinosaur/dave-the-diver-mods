@@ -66,7 +66,7 @@ class Diving {
     public void load_enabled_pickup_items() {
         int counter = 1;
         bool did_error = false;
-        string path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "auto-pickup-items.txt"));
+        string path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..", "config", "auto-pickup-items.txt"));
         try {
             m_all_pickup_item_names.Sort();
             foreach (string key in m_all_pickup_item_names) {

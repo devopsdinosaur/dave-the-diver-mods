@@ -7,9 +7,12 @@
   <ItemGroup>
     <Content Include="$(BepInExPath)\LogOutput.log" Link="log\LogOutput.log" />
     <Content Include="$(BepInExPath)\config\$(AssemblyName).cfg" Link="config\$(AssemblyName).cfg" />
+    <Content Include="$(BepInExPath)\config\auto-pickup-items.txt" Link="config\auto-pickup-items.txt" />
     <Content Include="$(BepInExPath)\plugins\nexus\$(AssemblyName)\generated.txt" Link="nexus\generated.txt" />
-    <Content Include="$(BepInExPath)\plugins\auto-pickup-items.txt" Link="config\auto-pickup-items.txt" />
   </ItemGroup>
+  <Target Name="PreBuild" AfterTargets="PreBuildEvent">
+    <Exec Command="python tools/generate-auto-pickup-items-source.py" />
+  </Target>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <ItemGroup>
       <AllFiles Include="$(TargetDir)**\*.*" Exclude="$(TargetDir)**\*.pdb" />
