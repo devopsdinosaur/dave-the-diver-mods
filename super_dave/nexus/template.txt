@@ -34,6 +34,9 @@ For information on how to modify these options, see the [i]Editing the Config Fi
 [*]After making changes, save the file and restart the game to try out the new settings!
 [/list]
 
+[size=4][b][u]Auto-pickup Items Config File[/u][/b][/size]
+There is a new config file that will be created after the first run of this version of the mod, BepInEx/config/auto-pickup-items.txt.  The file defines which items will be picked up when auto-pickup is enabled.  Instructions for usage are in the file.  Please let me know here if there are items that are safe to always pick up that I missed (i.e. still commented with a '#')  Note that fish are picked up using different logic and those lines will be ignored.
+
 [size=4][b][u]Source Code and Bug Reporting[/u][/b][/size]
 
 All of my mods are open source on GitHub here: [url=https://github.com/[[author]]/[[repo]]]https://github.com/[[author]]/[[repo]][/url]
