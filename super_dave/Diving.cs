@@ -6,6 +6,8 @@ using DR;
 using System.IO;
 using System.Reflection;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using Il2CppSystem.Globalization;
 
 class Diving {
     private static Diving m_instance = null;
@@ -174,34 +176,32 @@ class Diving {
             }
         }
 
-        [HarmonyPatch(typeof(IntegratedItem), "BuildInternal")]
-        class HarmonyPatch_IntegratedItem_BuildInternal {
-            private static bool Prefix(ref IItemBase itemBase) {
+        [HarmonyPatch(typeof(IntegratedItem), "BuildItem")]
+        class HarmonyPatch_IntegratedItem_BuildItem {
+            private static bool Prefix(Items itemBase) {
                 try {
                     if (Settings.m_enabled.Value && Settings.m_weightless_items.Value) {
-                        itemBase.ItemWeight = 0;
+                        ReflectionUtils.get_property(itemBase, "ItemWeight").SetValue(itemBase, 0);
                     }
                     if (!string.IsNullOrEmpty(itemBase.ItemTextID) && !m_all_pickup_item_names.Contains(itemBase.ItemTextID)) {
                         m_all_pickup_item_names.Add(itemBase.ItemTextID);
                     }
                     return true;
                 } catch (Exception e) {
-                    DDPlugin._error_log("** HarmonyPatch_IntegratedItem_BuildInternal.Postfix ERROR - " + e);
+                    DDPlugin._error_log("** HarmonyPatch_IntegratedItem_BuildItem.Prefix ERROR - " + e);
                 }
                 return true;
             }
         }
 
-        [HarmonyPatch(typeof(PlayerBreathHandler), "SetHP")]
-        class HarmonyPatch_PlayerBreathHandler_SetHP {
-            private static bool Prefix(ref float pHP) {
-                try {
-                    if (Settings.m_enabled.Value && Settings.m_infinite_oxygen.Value) {
-                        pHP = 999f;
-                    }
-                    return true;
-                } catch (Exception e) {
-                    DDPlugin._error_log("** HarmonyPatch_PlayerBreathHandler_Update.Prefix ERROR - " + e);
+        [HarmonyPatch(typeof(PlayerBreathHandler), "Update")]
+        class HarmonyPatch_PlayerBreathHandler_Update {
+            private static bool Prefix(PlayerBreathHandler __instance) {
+                if (Settings.m_enabled.Value && Settings.m_infinite_oxygen.Value) {
+                    __instance.SetBreathInvincible(true);
+                }
+                if (Settings.m_enabled.Value && Settings.m_invincible.Value) {
+                    __instance.SetDamageInvicible(true);
                 }
                 return true;
             }

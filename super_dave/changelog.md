@@ -1,4 +1,10 @@
-﻿# 0.0.11
+﻿# 0.0.12
+
+## Bug Fixes
+- Fixed all existing features to work with latest game version (v1.0.3.1530)
+
+
+# 0.0.11
 
 ## Features
 - Split "Infinite Crab Traps" into two new options: Infinite and Auto Drop crab traps.  Now users can have infinite manual crab traps and/or auto-dropping traps.

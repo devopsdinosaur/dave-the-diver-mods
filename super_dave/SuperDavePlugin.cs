@@ -21,7 +21,7 @@ public static class PluginInfo {
     public const string NAME = "super_dave";
 	public const string SHORT_DESCRIPTION = "Lots of little improvements to make the game easier to play (and lots more to come)!";
 
-    public const string VERSION = "0.0.11";
+    public const string VERSION = "0.0.12";
 
     public const string AUTHOR = "devopsdinosaur";
 	public const string GAME_TITLE = "Dave the Diver";
@@ -46,10 +46,11 @@ public class SuperDavePlugin : DDPlugin {
 		Singletons.Plugin = this;
 		logger = Singletons.Log = base.Log;
 		try {
-			Settings.Instance.load(this);
-			this.plugin_info = PluginInfo.to_dict();
-			this.create_nexus_page();
-			this.m_harmony.PatchAll();
+            this.m_plugin_info = PluginInfo.to_dict();
+            Settings.Instance.load(this);
+            DDPlugin.set_log_level(Settings.m_log_level.Value);
+            this.create_nexus_page();
+            this.m_harmony.PatchAll(); ;
 			PluginUpdater.create(this, logger);
 			Hotkeys.load();
 			Diving.load(this);

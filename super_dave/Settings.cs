@@ -14,6 +14,7 @@ public class Settings {
 
     // General
     public static ConfigEntry<bool> m_enabled;
+    public static ConfigEntry<string> m_log_level;
 
     // Boat
     public static ConfigEntry<float> m_boat_walk_speed_boost;
@@ -66,6 +67,7 @@ public class Settings {
 
         // General
         m_enabled = this.m_plugin.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+        m_log_level = this.m_plugin.Config.Bind<string>("General", "Log Level", "info", "[Advanced] Logging level, one of: 'none' (no logging), 'error' (only errors), 'warn' (errors and warnings), 'info' (normal logging), 'debug' (extra log messages for debugging issues).  Not case sensitive [string, default info].  Debug level not recommended unless you're noticing issues with the mod.  Changes to this setting require an application restart.");
 
         // Boat
         m_boat_walk_speed_boost = this.m_plugin.Config.Bind<float>("Boat", "Boat - Walk Speed Boost", 0f, "Speed boost applied to Dave when walking on the boat (float, default 0f [set to 0 to disable]).");

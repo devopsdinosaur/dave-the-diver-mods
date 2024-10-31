@@ -11,35 +11,84 @@ using BepInEx.Configuration;
 using System.Runtime.InteropServices;
 
 public abstract class DDPlugin : BasePlugin {
-    protected Dictionary<string, string> plugin_info = null;
+    protected Dictionary<string, string> m_plugin_info = null;
     protected static ManualLogSource logger;
+    public enum LogLevel {
+        None,
+        Error,
+        Warn,
+        Info,
+        Debug
+    }
+    private static readonly Dictionary<string, LogLevel> LOG_LEVEL_STRING_KEY_MAP = new Dictionary<string, LogLevel>() {
+        {"none", LogLevel.None},
+        {"error", LogLevel.Error},
+        {"warn", LogLevel.Warn},
+        {"info", LogLevel.Info},
+        {"debug", LogLevel.Debug},
+    };
+    protected static LogLevel m_log_level = LogLevel.Info;
+
+    public static LogLevel set_log_level(LogLevel level) {
+        _info_log($"Setting log level to {level.ToString().ToUpper()}.");
+        return (m_log_level = level);
+    }
+
+    public static LogLevel set_log_level(string level_string) {
+        if (LOG_LEVEL_STRING_KEY_MAP.TryGetValue(level_string.ToLower(), out LogLevel value)) {
+            return set_log_level(value);
+        }
+        return set_log_level(LogLevel.None);
+    }
 
     public static void _debug_log(object text) {
-        logger.LogInfo(text);
+        if (m_log_level >= LogLevel.Debug) {
+            logger.LogInfo(text);
+        }
     }
 
     public static void _info_log(object text) {
-        logger.LogInfo(text);
+        if (m_log_level >= LogLevel.Info) {
+            logger.LogInfo(text);
+        }
     }
 
     public static void _warn_log(object text) {
-        logger.LogWarning(text);
+        if (m_log_level >= LogLevel.Warn) {
+            logger.LogWarning(text);
+        }
     }
 
     public static void _error_log(object text) {
-        logger.LogError(text);
+        if (m_log_level >= LogLevel.Error) {
+            logger.LogError(text);
+        }
     }
 
-    public bool is_running_on_dev_box() {
-        return File.Exists(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "nexus", this.plugin_info["guid"], "template.txt")));
+    public string get_nexus_dir() {
+        try {
+            string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            foreach (string file in new string[] { "nexus", this.m_plugin_info["guid"] }) {
+                if (!Directory.Exists(path = Path.Combine(path, file))) {
+                    return null;
+                }
+            }
+            return path;
+        } catch (Exception e) {
+            _error_log("** DDPlugin.get_nexus_dir ERROR - " + e);
+        }
+        return null;
     }
 
     protected void create_nexus_page() {
-        if (plugin_info == null) {
-            logger.LogWarning("* create_nexus_page WARNING - plugin_info dict must be initialized before calling this method.");
+        if (m_plugin_info == null) {
+            logger.LogWarning("* create_nexus_page WARNING - m_plugin_info dict must be initialized before calling this method.");
             return;
         }
-        string nexus_dir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "nexus", this.plugin_info["guid"]));
+        string nexus_dir = this.get_nexus_dir();
+        if (nexus_dir == null) {
+            return;
+        }
         string template_path = Path.Combine(nexus_dir, "template.txt");
         string output_path = Path.Combine(nexus_dir, "generated.txt");
         if (!File.Exists(template_path)) {
@@ -47,6 +96,7 @@ public abstract class DDPlugin : BasePlugin {
         }
         string template_data = File.ReadAllText(template_path);
         Dictionary<string, List<string[]>> categories = new Dictionary<string, List<string[]>>();
+        List<string> hotkey_lines = new List<string>();
         foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> kvp in this.Config.ToArray()) {
             if (!categories.Keys.Contains(kvp.Key.Section)) {
                 categories[kvp.Key.Section] = new List<string[]>();
@@ -55,7 +105,12 @@ public abstract class DDPlugin : BasePlugin {
                 kvp.Key.Key,
                 $"[*][b][i]{kvp.Key.Key}[/i][/b] - {kvp.Value.Description.Description}"
             });
+            if (kvp.Key.Section != "Hotkeys") {
+                continue;
+            }
+            hotkey_lines.Add($"[*][b][i]{(kvp.Key.Key.EndsWith("Modifier") ? "" : "[Modifier_Key] + ")}{kvp.Value.DefaultValue.ToString().Replace(",", " or ")}[/i][/b] - {kvp.Key.Key.Replace("Hotkey - ", "").Replace(" Hotkey", "")}");
         }
+        this.m_plugin_info["hotkeys"] = (hotkey_lines.Count > 0 ? $"\n[b][u][size=4]Hotkeys[/size][/u][/b]\n\n[list]\n{string.Join("\n", hotkey_lines)}\n[/list]" : "");
         List<string> ordered_categories = new List<string>(categories.Keys);
         ordered_categories.Sort();
         foreach (List<string[]> items in categories.Values) {
@@ -69,8 +124,8 @@ public abstract class DDPlugin : BasePlugin {
             }
             lines += "[/list]\n";
         }
-        this.plugin_info["config_options"] = lines;
-        foreach (KeyValuePair<string, string> kvp in this.plugin_info) {
+        this.m_plugin_info["config_options"] = lines;
+        foreach (KeyValuePair<string, string> kvp in this.m_plugin_info) {
             template_data = template_data.Replace("[[" + kvp.Key + "]]", kvp.Value);
         }
         File.WriteAllText(output_path, template_data);
@@ -127,7 +182,7 @@ public static class UnityUtils {
 
     public static void list_ancestors(Transform obj, Action<object> log_method) {
         List<string> strings = new List<string>();
-        for (;;) {
+        for (; ; ) {
             if (obj == null) {
                 break;
             }
@@ -204,7 +259,9 @@ public static class UnityUtils {
 
 public static class ReflectionUtils {
 
-    public const BindingFlags BINDING_FLAGS_ALL = (BindingFlags) 65535;
+    public const BindingFlags BINDING_FLAGS_ALL = BindingFlags.Instance |
+        BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic |
+        BindingFlags.FlattenHierarchy | BindingFlags.InvokeMethod | BindingFlags.CreateInstance;
 
     public static string list_members(object obj) {
         List<string> lines = new List<string>();
@@ -346,14 +403,14 @@ public static class ReflectionUtils {
     }
 
     public static void generate_trace_patcher(
-        Type type, 
-        string path, 
-        string additional_usings = "", 
+        Type type,
+        string path,
+        string additional_usings = "",
         string[] skip_methods = null,
         bool echo_skip_messages = false
     ) {
         if (skip_methods == null) {
-            skip_methods = new string[] {};
+            skip_methods = new string[] { };
         }
         string type_name = type.Name;
         List<string> lines = new List<string>();
